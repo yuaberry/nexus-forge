@@ -94,7 +94,7 @@ nexus-forge/
 │           ├── db/          # SQLite real (WAL) — projetos, tasks, eventos, DNA
 │           └── server.ts    # HTTP + WebSocket (localhost) + UI estática
 ├── scripts/                 # start.sh · start.bat · start.command
-├── site/                     # site de download (estático, animado)
+├── docs/                     # site de download (GitHub Pages) + STATUS.md
 └── docs/                     # STATUS.md honesto + arquitetura
 ```
 
