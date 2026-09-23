@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+/* Nexus Forge design tokens — dark-first, electric blue, cyan active */
+@theme {
+  --color-void: #0a0b10;
+  --color-panel: #12131a;
+  --color-panel-2: #171923;
+  --color-edge: #232635;
+  --color-ink: #e8eaf2;
+  --color-mute: #8b90a3;
+  --color-nexus: #4f7cff;
+  --color-nexus-soft: #7c9aff;
+  --color-cyan-live: #22d3ee;
+  --color-violet: #a78bfa;
+  --color-good: #34d399;
+  --color-bad: #f87171;
+  --color-warn: #fbbf24;
+  --font-mono: ui-monospace, "JetBrains Mono", "Cascadia Code", monospace;
+}
+
+html, body, #root { height: 100%; }
+body {
+  background: var(--color-void);
+  color: var(--color-ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #232635; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #2e3247; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* Ambient background glow */
+.nexus-bg::before {
+  content: "";
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(900px 480px at 85% -10%, rgba(79, 124, 255, 0.10), transparent 60%),
+    radial-gradient(700px 420px at -10% 110%, rgba(167, 139, 250, 0.07), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.panel {
+  background: color-mix(in srgb, var(--color-panel) 88%, transparent);
+  border: 1px solid var(--color-edge);
+  border-radius: 14px;
+  backdrop-filter: blur(10px);
+}
+
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--color-edge); color: var(--color-ink);
+  background: var(--color-panel-2); cursor: pointer;
+  transition: all 0.15s ease; user-select: none;
+}
+.btn:hover { border-color: var(--color-nexus); color: #fff; transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn-primary {
+  background: linear-gradient(135deg, #4f7cff, #3f66e0);
+  border-color: transparent; color: #fff;
+  box-shadow: 0 4px 22px rgba(79, 124, 255, 0.35);
+}
+.btn-primary:hover { box-shadow: 0 6px 28px rgba(79, 124, 255, 0.55); }
+.btn:disabled { opacity: 0.45; pointer-events: none; }
+
+.input {
+  width: 100%; padding: 10px 12px; border-radius: 10px;
+  background: #0d0e15; border: 1px solid var(--color-edge);
+  color: var(--color-ink); font-size: 14px; outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input:focus { border-color: var(--color-nexus); box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.18); }
+textarea.input { resize: vertical; font-family: inherit; }
+
+.tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+  border: 1px solid var(--color-edge); color: var(--color-mute);
+}
+
+@keyframes nexus-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-cyan-live);
+  box-shadow: 0 0 12px var(--color-cyan-live); animation: nexus-pulse 1.8s infinite; }
+
+@keyframes slide-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.slide-in { animation: slide-in 0.22s ease; }
+
+@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+.progress-bar {
+  height: 8px; border-radius: 999px; overflow: hidden; background: #0d0e15; border: 1px solid var(--color-edge);
+}
+.progress-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, #4f7cff, #22d3ee, #4f7cff);
+  background-size: 400px 100%;
+  animation: shimmer 2.4s linear infinite;
+  transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}

@@ -1,0 +1,1 @@
+{"name": "@nexus/core", "version": "0.1.0", "type": "module", "dependencies": {"@nexus/shared": "workspace:*", "zod": "^3.23.0", "fflate": "^0.8.0"}, "devDependencies": {"bun-types": "^1.1.0", "typescript": "^5.5.0"}}
