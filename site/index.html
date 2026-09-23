@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nexus Forge — AI Autonomous Game Development Studio</title>
+<meta name="description" content="Nexus Forge — descreva um jogo e uma equipe de agentes de IA planeja, documenta, programa, valida e entrega um protótipo jogável.">
+<style>
+  :root{
+    --void:#0a0b10; --panel:#12131a; --panel2:#171923; --edge:#232635;
+    --ink:#e8eaf2; --mute:#8b90a3; --nexus:#4f7cff; --nexus2:#7c9aff;
+    --cyan:#22d3ee; --violet:#a78bfa; --good:#34d399;
+    --mono:ui-monospace,"JetBrains Mono",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--void);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  ::-webkit-scrollbar{width:10px}::-webkit-scrollbar-thumb{background:var(--edge);border-radius:6px}
+
+  .orb{position:fixed;border-radius:50%;filter:blur(90px);opacity:.16;z-index:0;pointer-events:none}
+  .orb-1{width:520px;height:520px;background:var(--nexus);top:-160px;right:-120px;animation:drift 16s ease-in-out infinite alternate}
+  .orb-2{width:460px;height:460px;background:var(--violet);bottom:-180px;left:-140px;animation:drift 20s ease-in-out infinite alternate-reverse}
+  @keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(40px,60px) scale(1.15)}}
+
+  nav{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;gap:28px;padding:14px 28px;
+    background:rgba(10,11,16,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--edge)}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.14em;font-size:15px}
+  .logo .mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--nexus),var(--violet));
+    display:grid;place-items:center;box-shadow:0 0 22px rgba(79,124,255,.5);animation:pulseMark 3s ease-in-out infinite}
+  @keyframes pulseMark{0%,100%{box-shadow:0 0 18px rgba(79,124,255,.35)}50%{box-shadow:0 0 34px rgba(79,124,255,.65)}}
+  .logo svg{width:18px;height:18px}
+  .tabs{display:flex;gap:6px;margin-left:24px}
+  .tab{padding:8px 18px;border-radius:10px;font-size:13.5px;font-weight:600;color:var(--mute);cursor:pointer;border:1px solid transparent;transition:.2s}
+  .tab:hover{color:var(--ink)}
+  .tab.active{color:#fff;background:linear-gradient(135deg,var(--nexus),#3f66e0);box-shadow:0 4px 18px rgba(79,124,255,.35)}
+  .gh-btn{margin-left:auto;display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;
+    border:1px solid var(--edge);background:var(--panel2);transition:.2s}
+  .gh-btn:hover{border-color:var(--nexus);transform:translateY(-1px)}
+  .gh-btn svg{width:16px;height:16px}
+
+  header{position:relative;z-index:1;min-height:92vh;display:grid;place-items:center;text-align:center;padding:120px 24px 60px}
+  .kicker{font-size:12px;letter-spacing:.32em;color:var(--nexus2);font-weight:700;opacity:0;animation:rise .8s .1s forwards}
+  h1{font-size:clamp(44px,8vw,88px);font-weight:900;letter-spacing:-.02em;line-height:1.02;margin:18px 0 10px;opacity:0;animation:rise .8s .25s forwards}
+  h1 .grad{background:linear-gradient(92deg,var(--nexus) 0%,var(--cyan) 45%,var(--violet) 90%);background-size:220% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;animation:shimmer 6s linear infinite}
+  @keyframes shimmer{0%{background-position:0% 0}100%{background-position:220% 0}}
+  .tagline{font-family:var(--mono);font-size:clamp(14px,2.4vw,19px);color:var(--mute);min-height:1.6em;opacity:0;animation:rise .8s .4s forwards}
+  .tagline .cursor{display:inline-block;width:9px;height:1.15em;background:var(--cyan);vertical-align:text-bottom;margin-left:3px;animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .hero-cta{margin-top:38px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;opacity:0;animation:rise .8s .55s forwards}
+  .btn{display:inline-flex;align-items:center;gap:9px;padding:13px 26px;border-radius:12px;font-weight:700;font-size:14.5px;transition:.2s;cursor:pointer;border:1px solid var(--edge)}
+  .btn-primary{background:linear-gradient(135deg,var(--nexus),#3f66e0);border:none;color:#fff;box-shadow:0 8px 32px rgba(79,124,255,.4)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 44px rgba(79,124,255,.55)}
+  .btn-ghost{background:rgba(18,19,26,.6);backdrop-filter:blur(8px)}
+  .btn-ghost:hover{border-color:var(--nexus);transform:translateY(-2px)}
+  .hero-note{margin-top:26px;font-size:12.5px;color:var(--mute);opacity:0;animation:rise .8s .7s forwards}
+  .hero-note b{color:var(--good);font-weight:600}
+
+  .pipeline{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:64px;opacity:0;animation:rise .8s .85s forwards}
+  .chip{font-family:var(--mono);font-size:11px;padding:6px 12px;border:1px solid var(--edge);border-radius:999px;color:var(--mute);background:rgba(18,19,26,.7)}
+  .chip.hot{color:var(--cyan);border-color:rgba(34,211,238,.4)}
+  .flow-sep{color:var(--edge);align-self:center}
+
+  section{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:70px 24px}
+  .view{display:none}
+  .view.active{display:block}
+  h2{font-size:clamp(26px,4vw,38px);font-weight:800;letter-spacing:-.01em;margin-bottom:8px}
+  .sub{color:var(--mute);font-size:15px;max-width:640px;line-height:1.65}
+
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s ease}
+  .reveal.in{opacity:1;transform:none}
+
+  .os-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-top:36px}
+  .card{border:1px solid var(--edge);border-radius:18px;padding:26px;background:rgba(18,19,26,.65);backdrop-filter:blur(10px);transition:.25s}
+  .card:hover{border-color:rgba(79,124,255,.55);transform:translateY(-4px);box-shadow:0 18px 44px rgba(0,0,0,.45)}
+  .card .os{display:flex;align-items:center;gap:12px;font-weight:800;font-size:17px}
+  .card .os svg{width:26px;height:26px}
+  .card p{color:var(--mute);font-size:13.5px;line-height:1.6;margin:12px 0 16px}
+  .card .req{font-family:var(--mono);font-size:11.5px;color:var(--mute);border-top:1px solid var(--edge);padding-top:12px;margin-top:6px}
+  .card .req b{color:var(--cyan);font-weight:600}
+  .os-tag{font-size:10.5px;font-weight:700;letter-spacing:.1em;padding:3px 10px;border-radius:999px;margin-left:auto}
+  .ok{color:var(--good);border:1px solid rgba(52,211,153,.35);background:rgba(52,211,153,.08)}
+  .beta{color:var(--cyan);border:1px solid rgba(34,211,238,.35);background:rgba(34,211,238,.08)}
+
+  .steps{margin-top:26px;border:1px solid var(--edge);border-radius:18px;overflow:hidden}
+  .steps .step{display:grid;grid-template-columns:44px 1fr;gap:14px;padding:18px 22px;border-bottom:1px solid var(--edge);align-items:start}
+  .steps .step:last-child{border-bottom:none}
+  .step .n{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-weight:800;font-size:13px;
+    background:rgba(79,124,255,.14);color:var(--nexus2);border:1px solid rgba(79,124,255,.3)}
+  .step p{color:var(--mute);font-size:13.5px;line-height:1.6}
+  .step code, .codeblock{font-family:var(--mono);font-size:12.5px;color:var(--cyan);background:rgba(34,211,238,.07);
+    border:1px solid rgba(34,211,238,.18);border-radius:7px;padding:2px 8px}
+  .step b.w, .step p b.w{color:var(--ink)}
+  .codeblock{display:block;margin-top:10px;padding:12px 16px;white-space:pre-wrap;line-height:1.55;color:var(--ink)}
+  .codeblock .c{color:var(--mute)}
+
+  .feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:36px}
+  .feat{border:1px solid var(--edge);border-radius:16px;padding:22px;background:rgba(18,19,26,.6);transition:.25s}
+  .feat:hover{border-color:rgba(167,139,250,.5);transform:translateY(-3px)}
+  .feat .ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;margin-bottom:14px;
+    background:linear-gradient(135deg,rgba(79,124,255,.2),rgba(167,139,250,.2));border:1px solid rgba(79,124,255,.3)}
+  .feat .ic svg{width:18px;height:18px;stroke:var(--nexus2)}
+  .feat h3{font-size:14.5px;font-weight:800;margin-bottom:6px}
+  .feat p{color:var(--mute);font-size:12.8px;line-height:1.6}
+
+  table{width:100%;border-collapse:collapse;margin-top:30px;font-size:13.5px}
+  th,td{padding:12px 16px;border-bottom:1px solid var(--edge);text-align:left}
+  th{color:var(--mute);font-size:11px;letter-spacing:.14em;font-weight:700}
+  td b.y{color:var(--good)} td b.n{color:var(--mute)} td b.p{color:var(--cyan)}
+  tr:hover td{background:rgba(79,124,255,.04)}
+
+  footer{position:relative;z-index:1;border-top:1px solid var(--edge);margin-top:60px;padding:34px 24px;text-align:center;color:var(--mute);font-size:12.5px}
+  footer b{color:var(--ink)}
+
+  @keyframes rise{to{opacity:1;transform:none}}
+  @media(max-width:720px){.tabs{margin-left:8px}.tab{padding:7px 12px;font-size:12.5px}}
+</style>
+</head>
+<body>
+<div class="orb orb-1"></div><div class="orb orb-2"></div>
+
+<nav>
+  <a class="logo" href="#" onclick="show('download');return false">
+    <span class="mark"><svg viewBox="0 0 128 128" fill="none"><path d="M64 22 106 64 64 106 22 64Z" stroke="#fff" stroke-width="12" stroke-linejoin="round"/><circle cx="64" cy="64" r="14" fill="#fff"/></svg></span>
+    NEXUS&nbsp;FORGE
+  </a>
+  <div class="tabs">
+    <span class="tab active" data-v="download" onclick="show('download')">Download</span>
+    <span class="tab" data-v="sobre" onclick="show('sobre')">Sobre o projeto</span>
+  </div>
+  <a class="gh-btn" href="https://github.com/yuaberry/nexus-forge" target="_blank" rel="noopener">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    GitHub
+  </a>
+</nav>
+
+<header>
+  <div>
+    <div class="kicker">AI AUTONOMOUS GAME DEVELOPMENT STUDIO</div>
+    <h1>NEXUS <span class="grad">FORGE</span></h1>
+    <div class="tagline"><span id="typed"></span><span class="cursor"></span></div>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#install" onclick="show('download')">⬇ Baixar o Nexus Forge</a>
+      <a class="btn btn-ghost" href="https://github.com/yuaberry/nexus-forge" target="_blank" rel="noopener">Ver no GitHub ↗</a>
+    </div>
+    <div class="hero-note">Status atual: <b>pipeline autônomo funcional</b> — ideia → Game DNA → GDD → código GDScript gerado por IA → validação headless no Godot → protótipo jogável.</div>
+    <div class="pipeline">
+      <span class="chip">IDEIA</span><span class="flow-sep">──</span>
+      <span class="chip">DNA</span><span class="flow-sep">──</span>
+      <span class="chip">GDD</span><span class="flow-sep">──</span>
+      <span class="chip">ARQUITETURA</span><span class="flow-sep">──</span>
+      <span class="chip">SCAFFOLD</span><span class="flow-sep">──</span>
+      <span class="chip hot">AGENTES LLM</span><span class="flow-sep">──</span>
+      <span class="chip hot">VALIDAÇÃO HEADLESS</span><span class="flow-sep">──</span>
+      <span class="chip">JOGÁVEL ✓</span>
+    </div>
+  </div>
+</header>
+
+<section class="view active" id="v-download">
+  <div class="reveal">
+    <h2>Download</h2>
+    <p class="sub">Um único clone, três scripts de inicialização. O Nexus Forge baixa a engine Godot 4.3 oficial automaticamente no primeiro uso — nenhum setup manual de engine necessário.</p>
+  </div>
+
+  <div class="os-grid">
+    <div class="card reveal">
+      <div class="os"><svg viewBox="0 0 24 24" fill="none" stroke="#7c9aff" stroke-width="1.6"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> Linux <span class="os-tag ok">PRONTO</span></div>
+      <p>Distribuições x64 (Ubuntu/Mint/Fedora/Arch) e ARM64. Validado de ponta a ponta: geração, validação headless e execução do editor.</p>
+      <div class="req">Launcher: <b>scripts/start.sh</b></div>
+    </div>
+    <div class="card reveal">
+      <div class="os"><svg viewBox="0 0 24 24" fill="none" stroke="#7c9aff" stroke-width="1.6"><path d="M3 5.5 11 4v7H3zM13 3.8 21 3v8h-8zM3 12.5 11 13.5V21l-8-1.1zM13 13.6 21 13.9V22l-8-1.2z"/></svg> Windows <span class="os-tag beta">COMPATÍVEL</span></div>
+      <p>Windows 10/11 x64. O core roda em Bun (nativo em Windows) e o adapter Godot baixa o binário oficial win64.exe automaticamente.</p>
+      <div class="req">Launcher: <b>scripts/start.bat</b></div>
+    </div>
+    <div class="card reveal">
+      <div class="os"><svg viewBox="0 0 24 24" fill="none" stroke="#7c9aff" stroke-width="1.6"><path d="M16 2c-4 0-6 3-6 7 0 5 2 7 6 7 3 0 5-2 5-6 0-5-2-8-5-8zM8 4H6a4 4 0 0 0-4 4v12a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-2"/></svg> macOS <span class="os-tag beta">COMPATÍVEL</span></div>
+      <p>Apple Silicon e Intel. Baixa o binário universal oficial do Godot 4.3 e detecta instalações em /Applications automaticamente.</p>
+      <div class="req">Launcher: <b>scripts/start.command</b></div>
+    </div>
+  </div>
+
+  <div class="steps reveal" id="install">
+    <div class="step"><span class="n">1</span><div><p><b class="w">Clone o repositório</b> (somente leitura — alterações apenas via pull request):</p>
+      <code class="codeblock">git clone https://github.com/yuaberry/nexus-forge.git
+<span class="c">cd nexus-forge</span></code></div></div>
+    <div class="step"><span class="n">2</span><div><p><b class="w">Instale o Bun</b> (runtime do core — único requisito global):</p>
+      <code class="codeblock"><span class="c"># Linux / macOS</span>
+curl -fsSL https://bun.sh/install | bash
+<span class="c"># Windows (PowerShell):</span>
+<span class="c"># irm bun.sh/install.ps1 | iex</span></code></div></div>
+    <div class="step"><span class="n">3</span><div><p><b class="w">Inicie o estúdio</b> — o script instala dependências, compila a UI, baixa o Godot 4.3 se necessário e sobe o servidor:</p>
+      <code class="codeblock"><span class="c"># Linux</span> ./scripts/start.sh
+<span class="c"># Windows</span> scripts\start.bat
+<span class="c"># macOS</span> ./scripts/start.command</code></div></div>
+    <div class="step"><span class="n">4</span><div><p><b class="w">Abra o estúdio</b> em <code>http://127.0.0.1:5180</code> — depois (opcional) importe sua chave OpenRouter em <b>Settings</b> para ativar os agentes LLM. Sem chave, o Nexus roda em modo determinístico com templates reais.</p></div></div>
+  </div>
+
+  <div class="hero-cta reveal" style="margin-top:34px">
+    <a class="btn btn-primary" href="https://github.com/yuaberry/nexus-forge" target="_blank" rel="noopener">Clone no GitHub ↗</a>
+  </div>
+</section>
+
+<section class="view" id="v-sobre">
+  <div class="reveal">
+    <h2>Sobre o projeto</h2>
+    <p class="sub">O Nexus Forge não é um chatbot que cospe código. É um <b style="color:var(--ink)">estúdio de desenvolvimento autônomo</b>: você atua como diretor criativo — descreve o jogo — e uma equipe de agentes de IA executa o trabalho técnico, com todo o processo auditável, versionado e validado por engine de verdade.</p>
+  </div>
+
+  <div class="feat-grid">
+    <div class="feat reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div><h3>Game DNA persistente</h3><p>Cada decisão de design fica registrada com origem: confirmada, inferida ou duvidosa. Agentes nunca contradizem o DNA aprovado.</p></div>
+    <div class="feat reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l2.5 2.5M16.5 16.5 19 19M19 5l-2.5 2.5M7.5 16.5 5 19"/></svg></div><h3>Agentes com validação real</h3><p>O Coder gera GDScript, o QA valida de verdade no Godot headless, o Fixer corrige erros exatos — até 3 rodadas, sem fingir sucesso.</p></div>
+    <div class="feat reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M6 3 3 6v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-3zM3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div><h3>Git nativo por task</h3><p>Cada tarefa termina em commit auditável com diff. Snapshots antes de grandes alterações e histórico completo por projeto.</p></div>
+    <div class="feat reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="2" y="4" width="20" height="7" rx="2"/><rect x="2" y="13" width="20" height="7" rx="2"/><path d="M6 7.5h.01M6 16.5h.01"/></svg></div><h3>Provider-agnóstico</h3><p>Interface AIProvider com OpenRouter funcional hoje; abstrações prontas para OpenAI-compatível, Ollama e modelos locais.</p></div>
+    <div class="feat reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M4 20 2 22M11 21l-7-7 6-6 7 7-6 6zM13 5l6 6 3-3-6-6-3 3z"/></svg></div><h3>Multi-engine por adapters</h3><p>Godot 4 integrado de ponta a ponta (download oficial, scaffold, validação headless). Unreal 5 com scaffold C++ real; Unity na arquitetura.</p></div>
+    <div class="feat reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div><h3>Segurança primeiro</h3><p>Chaves em AES-256-GCM fora do repositório, workspace com sandbox de path, zero segredos no código.</p></div>
+  </div>
+
+  <div class="reveal" style="margin-top:44px">
+    <h2 style="font-size:20px">Status real (sem fingimento)</h2>
+    <table>
+      <tr><th>Capacidade</th><th>Status</th></tr>
+      <tr><td>Wizard ideia → plano → Game DNA → GDD</td><td><b class="y">Funcional</b> (LLM + fallback determinístico)</td></tr>
+      <tr><td>Geração de jogo jogável (Godot 4.3)</td><td><b class="y">Funcional</b> — topdown, platformer e 3D validados</td></tr>
+      <tr><td>Codegen de sistemas por agentes + loop de correção</td><td><b class="y">Funcional</b> (comprovado com OpenRouter)</td></tr>
+      <tr><td>Auto-download oficial da engine (Linux/Win/macOS)</td><td><b class="y">Linux verificado</b> · <b class="p">Win/macOS: código pronto, teste pendente</b></td></tr>
+      <tr><td>Unreal Engine 5</td><td><b class="p">Scaffold real de projeto C++</b> · compilação requer UE5 instalado</td></tr>
+      <tr><td>Playtesting autônomo, asset pipeline, Unity</td><td><b class="n">Próximas fases (arquitetura pronta)</b></td></tr>
+    </table>
+  </div>
+
+  <div class="hero-cta reveal" style="margin-top:40px">
+    <a class="btn btn-primary" href="https://github.com/yuaberry/nexus-forge" target="_blank" rel="noopener">Abrir repositório no GitHub ↗</a>
+    <a class="btn btn-ghost" href="#" onclick="show('download');return false">Ver como baixar</a>
+  </div>
+</section>
+
+<footer>
+  <b>NEXUS FORGE</b> — Imagine. Direct. Build. · Um projeto <b>Yua Devs</b> · Software de código aberto sob licença MIT<br>
+  <span style="opacity:.7">Site estático e somente leitura — alterações acontecem apenas via pull request no repositório.</span>
+</footer>
+
+<script>
+  const GITHUB_URL = "https://github.com/yuaberry/nexus-forge";
+
+  function show(v) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.v === v));
+    document.querySelectorAll('.view').forEach(s => s.classList.remove('active'));
+    document.getElementById('v-' + v).classList.add('active');
+    window.scrollTo({ top: 520, behavior: 'smooth' });
+    observeReveals();
+  }
+
+  const phrases = [
+    "Imagine. Direct. Build.",
+    "Descreva o jogo. A IA forja o resto.",
+    "Colony survival, metroidvania, souls-like, 3D, 2D — você imagina.",
+    "Agentes autônomos. Engine real. Zero fingimento.",
+  ];
+  let pi = 0, ci = 0, deleting = false;
+  const el = document.getElementById('typed');
+  (function type() {
+    const p = phrases[pi];
+    el.textContent = p.slice(0, ci);
+    if (!deleting && ci < p.length) { ci++; setTimeout(type, 46); }
+    else if (!deleting) { deleting = true; setTimeout(type, 2100); }
+    else if (ci > 0) { ci--; setTimeout(type, 18); }
+    else { deleting = false; pi = (pi + 1) % phrases.length; setTimeout(type, 400); }
+  })();
+
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .12 });
+  function observeReveals() { document.querySelectorAll('.view.active .reveal:not(.in)').forEach(r => io.observe(r)); }
+  observeReveals();
+</script>
+</body>
+</html>
