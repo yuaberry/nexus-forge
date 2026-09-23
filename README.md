@@ -95,7 +95,6 @@ nexus-forge/
 │           └── server.ts    # HTTP + WebSocket (localhost) + UI estática
 ├── scripts/                 # start.sh · start.bat · start.command
 ├── docs/                     # site de download (GitHub Pages) + STATUS.md
-└── docs/                     # STATUS.md honesto + arquitetura
 ```
 
 **Decisões de arquitetura que importam:**
