@@ -100,4 +100,10 @@ export const api = {
   setSettings: (body: Record<string, unknown>) => req<{ ok: boolean }>("/api/settings", { method: "PATCH", body: JSON.stringify(body) }),
   approveTask: (id: string) => req<{ ok: boolean }>(`/api/tasks/${id}/approve`, { method: "POST", body: "{}" }),
   rejectTask: (id: string) => req<{ ok: boolean }>(`/api/tasks/${id}/reject`, { method: "POST", body: "{}" }),
+  exportWeb: (id: string) =>
+    req<{ started?: boolean; ok?: boolean; url?: string; files?: string[]; error?: string; templatesMissing?: boolean }>(`/api/projects/${id}/export-web`, { method: "POST", body: "{}" }),
+  previewStatus: (id: string) =>
+    req<{ ready: boolean; url: string | null }>(`/api/projects/${id}/preview-status`),
+  templatesStatus: () => req<{ installed: boolean; target: string }>("/api/engines/godot/templates-status"),
+  installTemplates: () => req<{ ok: boolean; note: string; installed: boolean }>("/api/engines/godot/templates-install", { method: "POST", body: "{}" }),
 };

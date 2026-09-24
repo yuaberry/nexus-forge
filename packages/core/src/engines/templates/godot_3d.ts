@@ -5,6 +5,7 @@
  */
 import type { GameSpec } from "../types";
 import { projectGodot, godotIgnore, rootScene, iconSvg, hudScript } from "./gd_common";
+import { WEB_EXPORT_PRESET } from "../godotExport";
 
 function gameState(spec: GameSpec): string {
   return `extends Node
@@ -366,6 +367,7 @@ export function threeDFiles(spec: GameSpec): Record<string, string> {
   return {
     "project.godot": projectGodot(spec),
     ".gitignore": godotIgnore(),
+    "export_presets.cfg": WEB_EXPORT_PRESET,
     "icon.svg": iconSvg(spec.palette.bg, spec.palette.accent),
     "scenes/main.tscn": rootScene("Main", "Node", "res://scripts/main.gd"),
     "scenes/player.tscn": rootScene("Player", "CharacterBody3D", "res://scripts/player.gd"),

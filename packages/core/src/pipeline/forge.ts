@@ -215,6 +215,23 @@ async function stageValidate(p: ProjectRow, ws: Workspace, git: GitRepo, plan: G
     await git.ensureCommitted("validate: PASS");
     updateProject(p.id, { status: "playable", phase: "Prototype", progress: 100 });
     stage(p.id, "validate", `Validation PASS — prototype is playable (${v.durationMs}ms).`, "success");
+    // Engine-like: refresh the live preview automatically (only when export
+    // templates are already installed — never surprise-downloads 1GB).
+    try {
+      const { templatesInstalled, exportWeb } = await import("../engines/godotExport");
+      const { Godot4Adapter } = await import("../engines/godot");
+      if (p.engine === "godot4" && templatesInstalled()) {
+        const det = await new Godot4Adapter().detect();
+        if (det.installed && det.path) {
+          const { homedir } = await import("node:os");
+          const { join } = await import("node:path");
+          const outDir = join(homedir(), ".nexusforge", "previews", p.slug);
+          stage(p.id, "preview", "Refreshing live preview…", "info");
+          const result = await exportWeb(p.data_path, det.path, outDir);
+          stage(p.id, "preview", result.ok ? "Live preview updated." : `Preview refresh failed: ${result.error}`, result.ok ? "success" : "warning");
+        }
+      }
+    } catch { /* preview is a bonus, never blocks the pipeline */ }
     return true;
   }
   ws.write("docs/validation-report.md", `# Validation Report\n\nResult: **FAIL**\n\n${v.issues.map((i) => `- [${i.file}${i.line ? `:${i.line}` : ""}] ${i.message}`).join("\n")}\n`);

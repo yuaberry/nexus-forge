@@ -37,6 +37,7 @@ IDEIA → INTENT → GAME DNA → GDD → ARQUITETURA → SCAFFOLD GODOT
 | Game DNA persistente com procedência (confirmado/inferido/duvidoso) | ✅ Funcional |
 | GDD + arquitetura técnica gerados | ✅ Funcional |
 | Scaffold real de projeto **Godot 4.3** (topdown · platformer · 3D) | ✅ Funcional |
+| **▶ Live Preview** — o jogo exportado (Web/WASM) roda DENTRO do estúdio | ✅ Funcional |
 | Codegen de sistemas + loop de correção (3 rodadas) com validação headless | ✅ Funcional |
 | Scaffold real de projeto **Unreal 5** (C++ uproject/Source/Config) | ✅ Funcional (compilação requer UE5 instalado) |
 | Auto-download oficial do Godot 4.3 | ✅ Linux x64 verificado · Win/macOS código pronto |

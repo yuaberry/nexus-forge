@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Play, Dna, Code2, ScrollText, ExternalLink, ShieldCheck, RefreshCw, Terminal,
+  Play, Dna, Code2, ScrollText, ExternalLink, ShieldCheck, RefreshCw, Terminal, MonitorPlay,
 } from "lucide-react";
 import { api, type ProjectDto, type TaskDto, type EventDto } from "../lib/api";
 import { useNexus } from "../store";
@@ -33,6 +33,10 @@ export default function ProjectView() {
   const [tasks, setTasks] = useState<TaskDto[]>([]);
   const [initialEvents, setInitialEvents] = useState<EventDto[]>([]);
   const [busy, setBusy] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const [previewNote, setPreviewNote] = useState<string | null>(null);
+  const [templatesReady, setTemplatesReady] = useState<boolean | null>(null);
   const [validation, setValidation] = useState<string | null>(null);
 
   const load = async () => {
@@ -90,6 +94,61 @@ export default function ProjectView() {
     try { await api.editor(id); } catch { /* engine missing */ }
   };
 
+  const buildPreview = async () => {
+    if (!id) return;
+    setPreviewBusy(true);
+    setPreviewNote(null);
+    try {
+      // instant check: existing build?
+      const status0 = await api.previewStatus(id);
+      if (status0.ready && status0.url) {
+        // still trigger a fresh export in the background (latest agent work)
+        void api.exportWeb(id).catch(() => undefined);
+        setPreviewUrl(`${status0.url}?t=${Date.now()}`);
+        setPreviewNote(null);
+        setPreviewBusy(false);
+        return;
+      }
+      const r = await api.exportWeb(id);
+      if ((r as { started?: boolean }).started) {
+        setPreviewNote("Exportando build web (Godot real — a primeira exportação pode levar alguns minutos)…");
+        // poll until ready
+        for (let i = 0; i < 90; i++) {
+          await new Promise((res) => setTimeout(res, 2500));
+          const st = await api.previewStatus(id);
+          if (st.ready && st.url) {
+            setPreviewUrl(`${st.url}?t=${Date.now()}`);
+            setPreviewNote(null);
+            setPreviewBusy(false);
+            return;
+          }
+        }
+        setPreviewNote("A exportação ainda está rodando — acompanhe o Activity Feed.");
+      } else if ((r as { templatesMissing?: boolean }).templatesMissing) {
+        setPreviewNote("Templates de export não instalados — instale abaixo (download único oficial, ~1GB).");
+        setTemplatesReady(false);
+      } else {
+        setPreviewNote((r as { error?: string }).error ?? "Falha no export web.");
+      }
+    } catch (e) {
+      setPreviewNote(e instanceof Error ? e.message : "erro no export");
+    }
+    setPreviewBusy(false);
+  };
+
+  const installTemplates = async () => {
+    setPreviewBusy(true);
+    setPreviewNote("Baixando templates oficiais (~570MB)… acompanhe no Activity Feed.");
+    try {
+      const r = await api.installTemplates();
+      setTemplatesReady(r.installed);
+      setPreviewNote(r.installed ? "Templates instalados! Clique em ▶ Live Preview." : r.note);
+    } catch (e) {
+      setPreviewNote(e instanceof Error ? e.message : "falha no download");
+    }
+    setPreviewBusy(false);
+  };
+
   if (!project) return <div className="p-8 text-mute text-center">carregando projeto…</div>;
 
   const running = liveEvents.some((e) => e.stage && !stagesDone.has("validate") && tasks.some((t) => t.status === "running"));
@@ -139,8 +198,16 @@ export default function ProjectView() {
 
       {/* actions */}
       <div className="flex gap-2 flex-wrap">
-        <button className="btn btn-primary" onClick={runForge} disabled={busy}>
-          <Play size={14} /> {busy ? "Pipeline em execução…" : "Executar pipeline completo"}
+        <button className="btn btn-primary" onClick={buildPreview} disabled={previewBusy} title="Exporta o jogo para web (Godot real) e roda embutido aqui">
+          <MonitorPlay size={14} /> {previewBusy ? "Exportando…" : "▶ Live Preview"}
+        </button>
+        {templatesReady === false && (
+          <button className="btn text-cyan-live border-cyan-live/40" onClick={installTemplates} disabled={previewBusy}>
+            Instalar templates de export
+          </button>
+        )}
+        <button className="btn" onClick={runForge} disabled={busy}>
+          <Play size={14} /> {busy ? "Pipeline em execução…" : "Executar pipeline"}
         </button>
         <button className="btn" onClick={validateNow}><Terminal size={14} /> Validar agora</button>
         <button className="btn" onClick={openEditor}><ExternalLink size={14} /> Abrir na engine</button>
@@ -150,6 +217,27 @@ export default function ProjectView() {
         <button className="btn" onClick={() => void load()}><RefreshCw size={14} /></button>
       </div>
       {validation && <div className="panel p-3 text-sm font-mono">{validation}</div>}
+      {previewNote && <div className="panel p-3 text-sm text-cyan-live border-cyan-live/30">{previewNote}</div>}
+
+      {/* LIVE PREVIEW — the game runs INSIDE the studio, like an engine's Play panel */}
+      {previewUrl && (
+        <div className="panel p-0 overflow-hidden slide-in">
+          <div className="flex items-center gap-3 px-4 py-2.5 border-b border-edge">
+            <span className="live-dot" />
+            <span className="text-[12px] font-bold tracking-wider text-cyan-live">LIVE PREVIEW</span>
+            <span className="text-[11px] text-mute">— o jogo roda aqui dentro (export Web real do Godot)</span>
+            <button className="btn ml-auto py-1.5 px-3" onClick={buildPreview} disabled={previewBusy}>
+              <RefreshCw size={13} /> {previewBusy ? "Re-exportando…" : "Atualizar preview"}
+            </button>
+          </div>
+          <iframe
+            src={previewUrl}
+            className="w-full"
+            style={{ height: 560, background: "#000", display: "block", border: "none" }}
+            allow="autoplay; fullscreen; gamepad"
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-[1fr_380px] gap-5">
         {/* tasks */}

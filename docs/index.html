@@ -144,7 +144,7 @@
       <a class="btn btn-primary" href="#install" onclick="show('download')">⬇ Baixar o Nexus Forge</a>
       <a class="btn btn-ghost" href="https://github.com/yuaberry/nexus-forge" target="_blank" rel="noopener">Ver no GitHub ↗</a>
     </div>
-    <div class="hero-note">Status atual: <b>pipeline autônomo funcional</b> — ideia → Game DNA → GDD → código GDScript gerado por IA → validação headless no Godot → protótipo jogável.</div>
+    <div class="hero-note">Status atual: <b>launcher-engine com LIVE PREVIEW</b> — ideia → Game DNA → GDD → código GDScript gerado por IA → validação headless → <b>o jogo roda DENTRO do estúdio</b> (export Web real do Godot, embutido na interface).</div>
     <div class="pipeline">
       <span class="chip">IDEIA</span><span class="flow-sep">──</span>
       <span class="chip">DNA</span><span class="flow-sep">──</span>
@@ -153,6 +153,7 @@
       <span class="chip">SCAFFOLD</span><span class="flow-sep">──</span>
       <span class="chip hot">AGENTES LLM</span><span class="flow-sep">──</span>
       <span class="chip hot">VALIDAÇÃO HEADLESS</span><span class="flow-sep">──</span>
+      <span class="chip hot">▶ LIVE PREVIEW</span><span class="flow-sep">──</span>
       <span class="chip">JOGÁVEL ✓</span>
     </div>
   </div>
@@ -215,6 +216,7 @@ curl -fsSL https://bun.sh/install | bash
     <div class="feat reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M6 3 3 6v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-3zM3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div><h3>Git nativo por task</h3><p>Cada tarefa termina em commit auditável com diff. Snapshots antes de grandes alterações e histórico completo por projeto.</p></div>
     <div class="feat reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="2" y="4" width="20" height="7" rx="2"/><rect x="2" y="13" width="20" height="7" rx="2"/><path d="M6 7.5h.01M6 16.5h.01"/></svg></div><h3>Provider-agnóstico</h3><p>Interface AIProvider com OpenRouter funcional hoje; abstrações prontas para OpenAI-compatível, Ollama e modelos locais.</p></div>
     <div class="feat reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M4 20 2 22M11 21l-7-7 6-6 7 7-6 6zM13 5l6 6 3-3-6-6-3 3z"/></svg></div><h3>Multi-engine por adapters</h3><p>Godot 4 integrado de ponta a ponta (download oficial, scaffold, validação headless). Unreal 5 com scaffold C++ real; Unity na arquitetura.</p></div>
+    <div class="feat reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="m10 8 4 2.5L10 13z" fill="#7c9aff" stroke="none"/></svg></div><h3>Live Preview embutido</h3><p>O botão ▶ exporta o jogo para Web com o Godot real (WASM) e o roda dentro do estúdio — como o Play de uma engine.</p></div>
     <div class="feat reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div><h3>Segurança primeiro</h3><p>Chaves em AES-256-GCM fora do repositório, workspace com sandbox de path, zero segredos no código.</p></div>
   </div>
 
@@ -224,6 +226,7 @@ curl -fsSL https://bun.sh/install | bash
       <tr><th>Capacidade</th><th>Status</th></tr>
       <tr><td>Wizard ideia → plano → Game DNA → GDD</td><td><b class="y">Funcional</b> (LLM + fallback determinístico)</td></tr>
       <tr><td>Geração de jogo jogável (Godot 4.3)</td><td><b class="y">Funcional</b> — topdown, platformer e 3D validados</td></tr>
+      <tr><td>▶ Live Preview (jogo rodando dentro do estúdio)</td><td><b class="y">Funcional</b> — export Web real (WASM) verificado</td></tr>
       <tr><td>Codegen de sistemas por agentes + loop de correção</td><td><b class="y">Funcional</b> (comprovado com OpenRouter)</td></tr>
       <tr><td>Auto-download oficial da engine (Linux/Win/macOS)</td><td><b class="y">Linux verificado</b> · <b class="p">Win/macOS: código pronto, teste pendente</b></td></tr>
       <tr><td>Unreal Engine 5</td><td><b class="p">Scaffold real de projeto C++</b> · compilação requer UE5 instalado</td></tr>

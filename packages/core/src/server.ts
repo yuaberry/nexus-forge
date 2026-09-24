@@ -3,7 +3,7 @@
  * Serves the REST API, the live event stream (WS) and the built UI (static).
  */
 import { join, dirname } from "node:path";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import type { ForgeStage, GameBrief } from "@nexus/shared";
 import { bus } from "./events";
 import { bus as eventBus } from "./events";
@@ -18,6 +18,10 @@ import { readDna, writeDnaField } from "./dna";
 import { Workspace } from "./workspace";
 import { GitRepo } from "./git";
 import { forge } from "./pipeline/forge";
+import { ensureExportTemplates, exportWeb, templatesInstalled, templatesTargetDir } from "./engines/godotExport";
+import { Godot4Adapter } from "./engines/godot";
+import { join as pathJoin } from "node:path";
+import { homedir } from "node:os";
 
 const PORT = Number(getSetting("server.port", 5180));
 const UI_DIST = join(import.meta.dir, "..", "..", "..", "apps", "ui", "dist");
@@ -105,6 +109,19 @@ async function handleApi(req: Request, path: string, url: URL): Promise<Response
     const r = await ensureGodot(true);
     const det = await detectEngines();
     return json({ ok: r.available, note: r.note, engines: det });
+  }
+  if (req.method === "GET" && path === "/api/engines/godot/templates-status") {
+    return json({ installed: templatesInstalled(), target: templatesTargetDir() });
+  }
+  if (req.method === "POST" && path === "/api/engines/godot/templates-install") {
+    try {
+      const r = await ensureExportTemplates((pct) => {
+        if (pct % 10 === 0) bus.emit({ projectId: null, agent: "engine-manager", stage: "preview", level: "info", message: `Export templates download: ${pct}%` });
+      });
+      return json({ ok: r.installed, note: r.note, installed: templatesInstalled() });
+    } catch (e) {
+      return json({ ok: false, note: e instanceof Error ? e.message : String(e), installed: false }, 500);
+    }
   }
 
   // --- projects -----------------------------------------------------------------
@@ -199,6 +216,39 @@ async function handleApi(req: Request, path: string, url: URL): Promise<Response
       writeDnaField(p.id, b.section as never, b.key, b.value, "confirmed", b.note ?? "Confirmed by user");
       return json({ ok: true });
     }
+    if (req.method === "POST" && parts[3] === "export-web") {
+      // LIVE PREVIEW: export the current game as a web build (real Godot exporter).
+      // Async (first export can take minutes — full project import): the UI
+      // polls preview-status; completion is announced via events.
+      const det = await new Godot4Adapter().detect();
+      if (!det.installed || !det.path) return json({ ok: false, error: "Godot 4 not installed." }, 400);
+      if (!templatesInstalled()) {
+        return json({ ok: false, error: "Export templates not installed — click 'Install templates' first (one-time, ~1GB official download).", templatesMissing: true }, 400);
+      }
+      const outDir = pathJoin(homedir(), ".nexusforge", "previews", p.slug);
+      const bin = det.path;
+      const projPath = p.data_path;
+      const projId = p.id;
+      const projSlug = p.slug;
+      bus.emit({ projectId: p.id, agent: "engine-manager", stage: "preview", level: "info", message: "Exporting web build for live preview…" });
+      void (async () => {
+        const result = await exportWeb(projPath, bin, outDir);
+        if (result.ok) {
+          bus.emit({ projectId: projId, agent: "engine-manager", stage: "preview", level: "success", message: `Live preview ready: /preview/${projSlug}/ (${result.files.length} files).` });
+        } else {
+          bus.emit({ projectId: projId, agent: "engine-manager", stage: "preview", level: "error", message: `Web export failed: ${result.error}` });
+        }
+      })();
+      return json({ started: true });
+    }
+    if (req.method === "GET" && parts[3] === "preview-status") {
+      const outDir = pathJoin(homedir(), ".nexusforge", "previews", p.slug);
+      let ready = false;
+      try {
+        ready = existsSync(pathJoin(outDir, "index.html")) && readdirSync(outDir).some((f) => f.endsWith(".wasm"));
+      } catch { ready = false; }
+      return json({ ready, url: ready ? `/preview/${p.slug}/` : null });
+    }
     if (req.method === "POST" && parts[3] === "refs" && req.method === "POST") {
       const form = await req.formData();
       const file = form.get("file");
@@ -275,6 +325,38 @@ export function startServer(): void {
       }
 
       if (path.startsWith("/api/")) return handleApi(req, path, url);
+
+      // LIVE PREVIEW static route: /preview/<slug>/<file> → ~/.nexusforge/previews/<slug>/
+      const pm = path.match(/^\/preview\/([\w-]+)\/(.*)$/);
+      if (pm) {
+        const slug = pm[1]!.replace(/[^\w-]/g, "");
+        const rel = pm[2]!.replace(/\.{2,}/g, "").replace(/^\/+/, "");
+        const base = pathJoin(homedir(), ".nexusforge", "previews", slug);
+        const abs = pathJoin(base, rel || "index.html");
+        if (abs.startsWith(base) && existsSync(abs)) {
+          const ext = rel.slice(rel.lastIndexOf(".") + 1);
+          const PREVIEW_MIME: Record<string, string> = {
+            html: "text/html; charset=utf-8",
+            js: "text/javascript; charset=utf-8",
+            wasm: "application/wasm",
+            pck: "application/octet-stream",
+            png: "image/png",
+            svg: "image/svg+xml",
+            json: "application/json",
+            worker: "text/javascript; charset=utf-8",
+            side: "application/wasm",
+          };
+          return new Response(readFileSync(abs), {
+            headers: {
+              "content-type": PREVIEW_MIME[ext] ?? "application/octet-stream",
+              "cross-origin-opener-policy": "same-origin",
+              "cross-origin-embedder-policy": "require-corp",
+              "cache-control": "no-store",
+            },
+          });
+        }
+        return new Response("preview not built yet", { status: 404 });
+      }
 
       const staticRes = serveStatic(path);
       if (staticRes) return staticRes;
