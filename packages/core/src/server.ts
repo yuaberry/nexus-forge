@@ -18,7 +18,10 @@ import { readDna, writeDnaField } from "./dna";
 import { Workspace } from "./workspace";
 import { GitRepo } from "./git";
 import { forge } from "./pipeline/forge";
+import { UI_EMBED } from "./ui-embed.generated";
 import { ensureExportTemplates, exportWeb, templatesInstalled, templatesTargetDir } from "./engines/godotExport";
+import { generateStoreKit } from "./publish/storeKit";
+import { buildExecutable, listBuilds, buildsDir } from "./publish/builds";
 import { Godot4Adapter } from "./engines/godot";
 import { join as pathJoin } from "node:path";
 import { homedir } from "node:os";
@@ -242,6 +245,49 @@ async function handleApi(req: Request, path: string, url: URL): Promise<Response
       return json({ started: true });
     }
     if (req.method === "GET" && parts[3] === "preview-status") {
+    const outDir = pathJoin(homedir(), ".nexusforge", "previews", p.slug);
+    let ready = false;
+    try {
+      ready = existsSync(pathJoin(outDir, "index.html")) && readdirSync(outDir).some((f) => f.endsWith(".wasm"));
+    } catch { ready = false; }
+    return json({ ready, url: ready ? `/preview/${p.slug}/` : null });
+    }
+    if (req.method === "POST" && parts[3] === "store-kit") {
+      // STEAM PUBLISH KIT: store copy + real rendered capsules + screenshots
+      const det = await new Godot4Adapter().detect();
+      if (!det.installed || !det.path) return json({ ok: false, error: "Godot 4 not installed." }, 400);
+      const projId = p.id;
+      void (async () => {
+        try {
+          await generateStoreKit(p, p.data_path, det.path!);
+        } catch (e) {
+          bus.emit({ projectId: projId, agent: "store-kit", stage: "publish", level: "error", message: `Store kit failed: ${e instanceof Error ? e.message : String(e)}` });
+        }
+      })();
+      return json({ started: true });
+    }
+    if (req.method === "GET" && parts[3] === "store-kit-status") {
+      const kit = pathJoin(p.data_path, "docs", "store-kit");
+      const ready = existsSync(pathJoin(kit, "store-description.md"));
+      let images = 0, screenshots = 0;
+      try { images = readdirSync(pathJoin(kit, "images")).length; } catch { /* none */ }
+      try { screenshots = readdirSync(pathJoin(kit, "screenshots")).length; } catch { /* none */ }
+      return json({ ready, images, screenshots });
+    }
+    if (req.method === "GET" && parts[3] === "builds") {
+      return json({ builds: listBuilds(p.slug) });
+    }
+    if (req.method === "POST" && parts[3] === "build-game") {
+      const b = await body<{ platform?: "windows" | "linux" }>(req).catch(() => ({}) as { platform?: "windows" | "linux" });
+      const platform = b.platform === "linux" ? "linux" : "windows";
+      const det = await new Godot4Adapter().detect();
+      if (!det.installed || !det.path) return json({ ok: false, error: "Godot 4 not installed." }, 400);
+      if (!templatesInstalled()) return json({ ok: false, error: "Export templates missing — install first.", templatesMissing: true }, 400);
+      const proj = p; const bin = det.path; const ws2 = p.data_path; const pid2 = p.id;
+      void (async () => { await buildExecutable(proj, ws2, bin, platform); })();
+      return json({ started: true, platform });
+    }
+    if (req.method === "GET" && parts[3] === "preview-status") {
       const outDir = pathJoin(homedir(), ".nexusforge", "previews", p.slug);
       let ready = false;
       try {
@@ -304,14 +350,22 @@ const MIME: Record<string, string> = {
 function serveStatic(path: string): Response | null {
   const rel = path === "/" ? "index.html" : path.slice(1);
   const abs = join(UI_DIST, rel);
-  if (!existsSync(abs)) return null;
-  const ext = rel.slice(rel.lastIndexOf("."));
-  return new Response(readFileSync(abs), { headers: { "content-type": MIME[ext] ?? "application/octet-stream" } });
+  if (existsSync(abs)) {
+    const ext = rel.slice(rel.lastIndexOf("."));
+    return new Response(readFileSync(abs), { headers: { "content-type": MIME[ext] ?? "application/octet-stream" } });
+  }
+  // Compiled standalone executable: UI embedded at build time (base64)
+  const b64 = UI_EMBED[rel];
+  if (b64) {
+    const ext = rel.slice(rel.lastIndexOf("."));
+    return new Response(Buffer.from(b64, "base64"), { headers: { "content-type": MIME[ext] ?? "application/octet-stream" } });
+  }
+  return null;
 }
 
 // --- server -------------------------------------------------------------------
 
-export function startServer(): void {
+export async function startServer(): Promise<void> {
   Bun.serve({
     port: PORT,
     hostname: "127.0.0.1",
@@ -325,6 +379,20 @@ export function startServer(): void {
       }
 
       if (path.startsWith("/api/")) return handleApi(req, path, url);
+
+      // Build downloads: /download/<slug>/<zip>
+      const dm = path.match(/^\/download\/([\w-]+)\/([\w.-]+\.zip)$/);
+      if (dm) {
+        const slug = dm[1]!.replace(/[^\w-]/g, "");
+        const file = dm[2]!.replace(/[^\w.-]/g, "");
+        const abs = pathJoin(buildsDir(slug), file);
+        if (abs.startsWith(buildsDir(slug)) && existsSync(abs)) {
+          return new Response(readFileSync(abs), {
+            headers: { "content-type": "application/zip", "content-disposition": `attachment; filename="${file}"` },
+          });
+        }
+        return json({ error: "build not found" }, 404);
+      }
 
       // LIVE PREVIEW static route: /preview/<slug>/<file> → ~/.nexusforge/previews/<slug>/
       const pm = path.match(/^\/preview\/([\w-]+)\/(.*)$/);
@@ -390,7 +458,18 @@ export function startServer(): void {
       message(_ws, _msg) { /* client → server messages not needed for MVP */ },
     },
   });
-  console.log(`[nexus-forge] server on http://127.0.0.1:${PORT}  (UI: ${existsSync(join(UI_DIST, "index.html")) ? "built" : "not built"})`);
+  console.log(`[nexus-forge] server on http://127.0.0.1:${PORT}  (UI: ${existsSync(join(UI_DIST, "index.html")) || Object.keys(UI_EMBED).length > 0 ? "ready" : "not built"})`);
+  // Professional app feel: open the studio in the default browser
+  if (!process.env.NEXUS_NO_OPEN) {
+    const url = `http://127.0.0.1:${PORT}`;
+    try {
+      const { spawn } = await import("node:child_process");
+      const opener = process.platform === "win32" ? "cmd" : process.platform === "darwin" ? "open" : "xdg-open";
+      const args = process.platform === "win32" ? ["/c", "start", "", url] : [url];
+      const child = spawn(opener, args, { detached: true, stdio: "ignore" });
+      child.unref();
+    } catch { /* opening the browser is best-effort */ }
+  }
 }
 
 void dirname;

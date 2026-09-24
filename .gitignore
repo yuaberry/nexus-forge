@@ -8,3 +8,4 @@ apps/ui/dist
 .nexusforge/
 secrets*
 .vite/
+dist-release/

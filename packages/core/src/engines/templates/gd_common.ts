@@ -22,11 +22,14 @@ config/features=PackedStringArray("4.3")
 [autoload]
 
 GameState="*res://scripts/game_state.gd"
+GameMenu="*res://scripts/game_menu.gd"
 
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
 
 [rendering]
 

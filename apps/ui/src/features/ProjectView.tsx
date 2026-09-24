@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Play, Dna, Code2, ScrollText, ExternalLink, ShieldCheck, RefreshCw, Terminal, MonitorPlay,
+  Play, Dna, Code2, ScrollText, ExternalLink, ShieldCheck, RefreshCw, Terminal, MonitorPlay, Store, Package,
 } from "lucide-react";
 import { api, type ProjectDto, type TaskDto, type EventDto } from "../lib/api";
 import { useNexus } from "../store";
@@ -37,6 +37,44 @@ export default function ProjectView() {
   const [previewBusy, setPreviewBusy] = useState(false);
   const [previewNote, setPreviewNote] = useState<string | null>(null);
   const [templatesReady, setTemplatesReady] = useState<boolean | null>(null);
+  const [pubBusy, setPubBusy] = useState(false);
+  const [pubNote, setPubNote] = useState<string | null>(null);
+  const [downloads, setDownloads] = useState<Array<{ name: string; size: number }>>([]);
+
+  useEffect(() => { if (id) void api.builds(id).then((r) => setDownloads(r.builds)).catch(() => undefined); }, [id]);
+
+  const makeStoreKit = async () => {
+    if (!id) return;
+    setPubBusy(true);
+    setPubNote("Gerando Steam Kit (descrição da loja + capsulas renderizadas + screenshots)…");
+    try {
+      await api.storeKit(id);
+      for (let i = 0; i < 80; i++) {
+        await new Promise((r) => setTimeout(r, 2500));
+        const st = await api.storeKitStatus(id);
+        if (st.ready) { setPubNote(`Steam Kit pronto: ${st.images} capsule(s) + ${st.screenshots} screenshot(s) em docs/store-kit/ (abra em Código).`); break; }
+      }
+    } catch (e) { setPubNote(e instanceof Error ? e.message : "erro"); }
+    setPubBusy(false);
+  };
+
+  const makeGameBuild = async (platform: "windows" | "linux") => {
+    if (!id) return;
+    setPubBusy(true);
+    setPubNote(`Exportando executável ${platform === "windows" ? "Windows .exe" : "Linux"} (Godot real)…`);
+    try {
+      await api.buildGame(id, platform);
+      for (let i = 0; i < 100; i++) {
+        await new Promise((r) => setTimeout(r, 3000));
+        const st = await api.builds(id);
+        const found = st.builds.find((b) => b.name.includes(platform === "windows" ? "win64" : "linux64"));
+        if (found) { setPubNote(`Build pronto: ${found.name} (${(found.size / 1048576).toFixed(0)} MB) — /download via botão abaixo.`); break; }
+      }
+      const st = await api.builds(id);
+      setDownloads(st.builds);
+    } catch (e) { setPubNote(e instanceof Error ? e.message : "erro"); }
+    setPubBusy(false);
+  };
   const [validation, setValidation] = useState<string | null>(null);
 
   const load = async () => {
@@ -211,6 +249,9 @@ export default function ProjectView() {
         </button>
         <button className="btn" onClick={validateNow}><Terminal size={14} /> Validar agora</button>
         <button className="btn" onClick={openEditor}><ExternalLink size={14} /> Abrir na engine</button>
+        <button className="btn" onClick={() => void makeStoreKit()} disabled={pubBusy}><Store size={14} /> Steam Kit</button>
+        <button className="btn" onClick={() => void makeGameBuild("windows")} disabled={pubBusy}><Package size={14} /> .exe (Windows)</button>
+        <button className="btn" onClick={() => void makeGameBuild("linux")} disabled={pubBusy}><Package size={14} /> Linux</button>
         <button className="btn" onClick={() => nav(`/project/${id}/dna`)}><Dna size={14} /> Game DNA</button>
         <button className="btn" onClick={() => nav(`/project/${id}/code`)}><Code2 size={14} /> Código</button>
         <button className="btn" onClick={() => nav(`/project/${id}/logs`)}><ScrollText size={14} /> Logs</button>
@@ -218,6 +259,15 @@ export default function ProjectView() {
       </div>
       {validation && <div className="panel p-3 text-sm font-mono">{validation}</div>}
       {previewNote && <div className="panel p-3 text-sm text-cyan-live border-cyan-live/30">{previewNote}</div>}
+      {pubNote && <div className="panel p-3 text-sm text-violet border-violet/30">{pubNote}</div>}
+      {downloads.length > 0 && (
+        <div className="panel p-4 flex gap-3 flex-wrap items-center">
+          <span className="text-[12px] font-bold tracking-wider text-mute">BUILDS PARA DISTRIBUIÇÃO:</span>
+          {downloads.map((d) => (
+            <a key={d.name} className="btn" href={`/download/${(project as { slug?: string }).slug}/${d.name}`} download>{d.name} · {(d.size / 1048576).toFixed(0)} MB</a>
+          ))}
+        </div>
+      )}
 
       {/* LIVE PREVIEW — the game runs INSIDE the studio, like an engine's Play panel */}
       {previewUrl && (

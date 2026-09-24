@@ -6,6 +6,7 @@
 import type { GameSpec } from "../types";
 import { projectGodot, godotIgnore, rootScene, iconSvg, hudScript } from "./gd_common";
 import { WEB_EXPORT_PRESET } from "../godotExport";
+import { sfxPickup, sfxHit, sfxClick, menuScript, gameStateProPatch } from "./gd_pro";
 
 function gameState(spec: GameSpec): string {
   return `extends Node
@@ -54,6 +55,7 @@ func add_score(n: int) -> void:
 	if score >= goal:
 		finished = true
 		won.emit()
+		save_best_run()
 
 func damage(n: int) -> void:
 	if finished:
@@ -63,7 +65,8 @@ func damage(n: int) -> void:
 		health = 0
 		finished = true
 		died.emit()
-`;
+		save_best_run()
+` + gameStateProPatch();
 }
 
 function playerScript(spec: GameSpec): string {
@@ -105,7 +108,6 @@ func _ready() -> void:
 	cam.position = Vector3(0, 4.2, 6.5)
 	cam_pivot.add_child(cam)
 	cam.make_current()
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
@@ -179,6 +181,7 @@ func _physics_process(delta: float) -> void:
 func hits_player() -> void:
 	hit_cooldown = 1.0
 	GameState.damage(10)
+	GameState.play_sfx("hit")
 `;
 }
 
@@ -219,6 +222,7 @@ func _process(delta: float) -> void:
 func _on_body_entered(body: Node3D) -> void:
 	if body.is_in_group("player"):
 		GameState.add_score(1)
+		GameState.play_sfx("pickup")
 		queue_free()
 `;
 }
@@ -363,11 +367,15 @@ func _on_died() -> void:
 `;
 }
 
-export function threeDFiles(spec: GameSpec): Record<string, string> {
+export function threeDFiles(spec: GameSpec): Record<string, string | Uint8Array> {
   return {
     "project.godot": projectGodot(spec),
     ".gitignore": godotIgnore(),
     "export_presets.cfg": WEB_EXPORT_PRESET,
+    "audio/pickup.wav": sfxPickup(),
+    "audio/hit.wav": sfxHit(),
+    "audio/click.wav": sfxClick(),
+    "scripts/game_menu.gd": menuScript(spec),
     "icon.svg": iconSvg(spec.palette.bg, spec.palette.accent),
     "scenes/main.tscn": rootScene("Main", "Node", "res://scripts/main.gd"),
     "scenes/player.tscn": rootScene("Player", "CharacterBody3D", "res://scripts/player.gd"),

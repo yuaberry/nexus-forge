@@ -104,6 +104,11 @@ export const api = {
     req<{ started?: boolean; ok?: boolean; url?: string; files?: string[]; error?: string; templatesMissing?: boolean }>(`/api/projects/${id}/export-web`, { method: "POST", body: "{}" }),
   previewStatus: (id: string) =>
     req<{ ready: boolean; url: string | null }>(`/api/projects/${id}/preview-status`),
+  storeKit: (id: string) => req<{ started: boolean }>(`/api/projects/${id}/store-kit`, { method: "POST", body: "{}" }),
+  storeKitStatus: (id: string) => req<{ ready: boolean; images: number; screenshots: number }>(`/api/projects/${id}/store-kit-status`),
+  builds: (id: string) => req<{ builds: Array<{ name: string; size: number }> }>(`/api/projects/${id}/builds`),
+  buildGame: (id: string, platform: "windows" | "linux") =>
+    req<{ started: boolean; platform: string }>(`/api/projects/${id}/build-game`, { method: "POST", body: JSON.stringify({ platform }) }),
   templatesStatus: () => req<{ installed: boolean; target: string }>("/api/engines/godot/templates-status"),
   installTemplates: () => req<{ ok: boolean; note: string; installed: boolean }>("/api/engines/godot/templates-install", { method: "POST", body: "{}" }),
 };

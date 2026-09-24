@@ -6,6 +6,7 @@
 import type { GameSpec } from "../types";
 import { projectGodot, godotIgnore, rootScene, iconSvg, hudScript } from "./gd_common";
 import { WEB_EXPORT_PRESET } from "../godotExport";
+import { sfxPickup, sfxHit, sfxClick, menuScript, gameStateProPatch } from "./gd_pro";
 
 function gameState(spec: GameSpec): string {
   return `extends Node
@@ -43,6 +44,7 @@ func add_score(n: int) -> void:
 	if score >= goal:
 		finished = true
 		won.emit()
+		save_best_run()
 
 func damage(n: int) -> void:
 	if finished:
@@ -52,11 +54,12 @@ func damage(n: int) -> void:
 		health = 0
 		finished = true
 		died.emit()
+		save_best_run()
 
 func day_phase() -> float:
 	# 0..1..0 sine of time for day/night tinting
 	return 0.5 + 0.5 * sin(elapsed / 30.0)
-`;
+` + gameStateProPatch();
 }
 
 function playerScript(spec: GameSpec): string {
@@ -139,6 +142,7 @@ func _physics_process(delta: float) -> void:
 func hits_player() -> void:
 	hit_cooldown = 0.9
 	GameState.damage(8)
+	GameState.play_sfx("hit")
 `;
 }
 
@@ -171,6 +175,7 @@ func _process(delta: float) -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		GameState.add_score(1)
+		GameState.play_sfx("pickup")
 		queue_free()
 `;
 }
@@ -298,11 +303,15 @@ func _on_died() -> void:
 `;
 }
 
-export function topdownFiles(spec: GameSpec): Record<string, string> {
+export function topdownFiles(spec: GameSpec): Record<string, string | Uint8Array> {
   return {
     "project.godot": projectGodot(spec),
     ".gitignore": godotIgnore(),
     "export_presets.cfg": WEB_EXPORT_PRESET,
+    "audio/pickup.wav": sfxPickup(),
+    "audio/hit.wav": sfxHit(),
+    "audio/click.wav": sfxClick(),
+    "scripts/game_menu.gd": menuScript(spec),
     "icon.svg": iconSvg(spec.palette.bg, spec.palette.accent),
     "scenes/main.tscn": rootScene("Main", "Node", "res://scripts/main.gd"),
     "scenes/player.tscn": rootScene("Player", "CharacterBody2D", "res://scripts/player.gd"),
