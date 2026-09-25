@@ -21,6 +21,8 @@ import { forge } from "./pipeline/forge";
 import { UI_EMBED } from "./ui-embed.generated";
 import { ensureExportTemplates, exportWeb, templatesInstalled, templatesTargetDir } from "./engines/godotExport";
 import { generateStoreKit } from "./publish/storeKit";
+import { SPRITE_SLOTS, forgeDefaultSprites, type SpriteSlot } from "./assets/spriteForge";
+import { aiSprite } from "./assets/aiSprites";
 import { buildExecutable, listBuilds, buildsDir } from "./publish/builds";
 import { Godot4Adapter } from "./engines/godot";
 import { join as pathJoin } from "node:path";
@@ -273,6 +275,60 @@ async function handleApi(req: Request, path: string, url: URL): Promise<Response
       try { images = readdirSync(pathJoin(kit, "images")).length; } catch { /* none */ }
       try { screenshots = readdirSync(pathJoin(kit, "screenshots")).length; } catch { /* none */ }
       return json({ ready, images, screenshots });
+    }
+    if (req.method === "GET" && parts[3] === "assets") {
+      const out: Array<{ slot: string; path: string; size: number }> = [];
+      for (const slot of SPRITE_SLOTS) {
+        const rel = `assets/sprites/${slot}.png`;
+        if (ws.exists(rel)) {
+          try { out.push({ slot, path: rel, size: Bun.file(join(p.data_path, rel)).size }); } catch { /* stat miss */ }
+        }
+      }
+      return json({ assets: out });
+    }
+    if (req.method === "GET" && parts[3] === "asset-file") {
+      const rel = url.searchParams.get("path") ?? "";
+      if (!/^assets\/sprites\/[\w-]+\.png$/.test(rel) || !ws.exists(rel)) return json({ error: "asset not found" }, 404);
+      try {
+        const abs = pathJoin(p.data_path, rel);
+        if (!abs.startsWith(p.data_path)) return json({ error: "invalid path" }, 400);
+        const raw = readFileSync(abs);
+        return json({ ok: true, base64: Buffer.from(raw).toString("base64") });
+      } catch (e) {
+        return json({ error: e instanceof Error ? e.message : "read failed" }, 400);
+      }
+    }
+    if (req.method === "POST" && parts[3] === "ai-sprite") {
+      const b = await body<{ slot?: string }>(req).catch(() => ({}) as { slot?: string });
+      const slot = (SPRITE_SLOTS as readonly string[]).includes(b.slot ?? "") ? (b.slot as SpriteSlot) : "player";
+      const pidA = p.id; const titleA = p.name; const ideaA = p.idea; const wsPath = p.data_path;
+      bus.emit({ projectId: pidA, agent: "art-director", stage: "assets", level: "info", message: `AI sprite: gerando "${slot}" (image model real)…` });
+      void (async () => {
+        const r = await aiSprite(slot, titleA, ideaA);
+        if (r.ok && r.bytes) {
+          const { mkdirSync } = await import("node:fs");
+          mkdirSync(join(wsPath, "assets", "sprites"), { recursive: true });
+          await Bun.write(join(wsPath, "assets", "sprites", `${slot}.png`), r.bytes);
+          bus.emit({ projectId: pidA, agent: "art-director", stage: "assets", level: "success", message: `AI sprite "${slot}" gerado (${(r.bytes.length / 1024).toFixed(0)}KB) — reexporte o preview para ver no jogo.` });
+        } else {
+          bus.emit({ projectId: pidA, agent: "art-director", stage: "assets", level: "error", message: `AI sprite "${slot}" falhou: ${r.error}` });
+        }
+      })();
+      return json({ started: true });
+    }
+    if (req.method === "POST" && parts[3] === "regen-sprite") {
+      const b = await body<{ slot?: string }>(req).catch(() => ({}) as { slot?: string });
+      const slot = (SPRITE_SLOTS as readonly string[]).includes(b.slot ?? "") ? (b.slot as SpriteSlot) : "player";
+      const sprites = forgeDefaultSprites({ accent: "#4f7cff", bg: "#12131a" });
+      const key = `assets/sprites/${slot}.png`;
+      const bytes = sprites[key];
+      if (bytes) {
+        const { mkdirSync } = await import("node:fs");
+        mkdirSync(join(p.data_path, "assets", "sprites"), { recursive: true });
+        await Bun.write(join(p.data_path, key), bytes);
+        bus.emit({ projectId: p.id, agent: "art-director", stage: "assets", level: "success", message: `Sprite procedural "${slot}" restaurado.` });
+      }
+      return json({ ok: true });
     }
     if (req.method === "GET" && parts[3] === "builds") {
       return json({ builds: listBuilds(p.slug) });

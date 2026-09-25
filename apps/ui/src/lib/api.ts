@@ -107,6 +107,8 @@ export const api = {
   storeKit: (id: string) => req<{ started: boolean }>(`/api/projects/${id}/store-kit`, { method: "POST", body: "{}" }),
   storeKitStatus: (id: string) => req<{ ready: boolean; images: number; screenshots: number }>(`/api/projects/${id}/store-kit-status`),
   builds: (id: string) => req<{ builds: Array<{ name: string; size: number }> }>(`/api/projects/${id}/builds`),
+  aiSprite: (id: string, slot: string) => req<{ started: boolean }>(`/api/projects/${id}/ai-sprite`, { method: "POST", body: JSON.stringify({ slot }) }),
+  regenSprite: (id: string, slot: string) => req<{ ok: boolean }>(`/api/projects/${id}/regen-sprite`, { method: "POST", body: JSON.stringify({ slot }) }),
   buildGame: (id: string, platform: "windows" | "linux") =>
     req<{ started: boolean; platform: string }>(`/api/projects/${id}/build-game`, { method: "POST", body: JSON.stringify({ platform }) }),
   templatesStatus: () => req<{ installed: boolean; target: string }>("/api/engines/godot/templates-status"),

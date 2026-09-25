@@ -7,6 +7,7 @@ import type { GameSpec } from "../types";
 import { projectGodot, godotIgnore, rootScene, iconSvg, hudScript } from "./gd_common";
 import { WEB_EXPORT_PRESET } from "../godotExport";
 import { sfxPickup, sfxHit, sfxClick, menuScript, gameStateProPatch } from "./gd_pro";
+import { forgeDefaultSprites } from "../../assets/spriteForge";
 
 function gameState(spec: GameSpec): string {
   return `extends Node
@@ -68,7 +69,7 @@ function playerScript(spec: GameSpec): string {
 
 const SPEED := ${spec.playerSpeed}
 var damage_cooldown := 0.0
-var visual: ColorRect = null
+var visual: CanvasItem = null
 
 func _ready() -> void:
 	add_to_group("player")
@@ -78,12 +79,20 @@ func _ready() -> void:
 	shape.shape = rect
 	add_child(shape)
 
-	visual = ColorRect.new()
-	visual.name = "Visual"
-	visual.size = Vector2(26, 26)
-	visual.color = Color("${spec.palette.accent}")
-	visual.position = Vector2(-13, -13)
-	add_child(visual)
+	var pTex := GameState.tex("res://assets/sprites/player.png")
+	if pTex != null:
+		visual = Sprite2D.new()
+		visual.name = "Visual"
+		(visual as Sprite2D).texture = pTex
+		(visual as Sprite2D).scale = Vector2(2.0, 2.0)
+		add_child(visual)
+	else:
+		visual = ColorRect.new()
+		visual.name = "Visual"
+		visual.size = Vector2(26, 26)
+		visual.color = Color("${spec.palette.accent}")
+		visual.position = Vector2(-13, -13)
+		add_child(visual)
 
 	var cam := Camera2D.new()
 	cam.zoom = Vector2(1.6, 1.6)
@@ -121,11 +130,18 @@ func _ready() -> void:
 	shape.shape = rect
 	add_child(shape)
 
-	var vis := ColorRect.new()
-	vis.size = Vector2(24, 24)
-	vis.color = Color("#e5484d")
-	vis.position = Vector2(-12, -12)
-	add_child(vis)
+	var eTex := GameState.tex("res://assets/sprites/enemy.png")
+	if eTex != null:
+		var espr := Sprite2D.new()
+		espr.texture = eTex
+		espr.scale = Vector2(2.0, 2.0)
+		add_child(espr)
+	else:
+		var vis := ColorRect.new()
+		vis.size = Vector2(24, 24)
+		vis.color = Color("#e5484d")
+		vis.position = Vector2(-12, -12)
+		add_child(vis)
 
 func _physics_process(delta: float) -> void:
 	hit_cooldown = max(hit_cooldown - delta, 0.0)
@@ -160,11 +176,18 @@ func _ready() -> void:
 	shape.shape = circ
 	add_child(shape)
 
-	var vis := ColorRect.new()
-	vis.size = Vector2(12, 12)
-	vis.color = Color("${spec.palette.accent}")
-	vis.position = Vector2(-6, -6)
-	add_child(vis)
+	var shTex := GameState.tex("res://assets/sprites/shard.png")
+	if shTex != null:
+		var sh := Sprite2D.new()
+		sh.texture = shTex
+		sh.scale = Vector2(1.5, 1.5)
+		add_child(sh)
+	else:
+		var vis := ColorRect.new()
+		vis.size = Vector2(12, 12)
+		vis.color = Color("${spec.palette.accent}")
+		vis.position = Vector2(-6, -6)
+		add_child(vis)
 
 	body_entered.connect(_on_body_entered)
 
@@ -214,10 +237,25 @@ func _process(_delta: float) -> void:
 		get_tree().reload_current_scene()
 
 func _build_arena() -> void:
+	var skyTex := GameState.tex("res://assets/sprites/sky.png")
+	if skyTex != null:
+		var sky := TextureRect.new()
+		sky.texture = skyTex
+		sky.stretch_mode = TextureRect.STRETCH_SCALE
+		sky.size = WORLD + Vector2(0, 0)
+		sky.z_index = -20
+		add_child(sky)
 	ground = ColorRect.new()
 	ground.size = WORLD
 	ground.color = ground_base
 	add_child(ground)
+	var gTex := GameState.tex("res://assets/sprites/tile_ground.png")
+	if gTex != null:
+		var gtex := TextureRect.new()
+		gtex.texture = gTex
+		gtex.stretch_mode = TextureRect.STRETCH_TILE
+		gtex.size = WORLD
+		add_child(gtex)
 
 	var borders := StaticBody2D.new()
 	borders.position = WORLD / 2.0
@@ -312,6 +350,7 @@ export function topdownFiles(spec: GameSpec): Record<string, string | Uint8Array
     "audio/hit.wav": sfxHit(),
     "audio/click.wav": sfxClick(),
     "scripts/game_menu.gd": menuScript(spec),
+    ...Object.fromEntries(Object.entries(forgeDefaultSprites({ accent: spec.palette.accent, bg: spec.palette.bg }))),
     "icon.svg": iconSvg(spec.palette.bg, spec.palette.accent),
     "scenes/main.tscn": rootScene("Main", "Node", "res://scripts/main.gd"),
     "scenes/player.tscn": rootScene("Player", "CharacterBody2D", "res://scripts/player.gd"),

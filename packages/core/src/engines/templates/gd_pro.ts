@@ -265,6 +265,21 @@ func _apply_saved_settings() -> void:
 export function gameStateProPatch(): string {
   return `
 # ---- professional kit (Nexus): SFX + best-run persistence ----
+# Runtime texture loader: loads raw PNGs WITHOUT needing the editor import
+# step (works headless, in editor and in exports — deterministic).
+var _tex_cache := {}
+func tex(path: String) -> Texture2D:
+	if _tex_cache.has(path):
+		return _tex_cache[path]
+	if not FileAccess.file_exists(path):
+		return null
+	var img := Image.new()
+	if img.load_png_from_buffer(FileAccess.get_file_as_bytes(path)) != OK:
+		return null
+	var t := ImageTexture.create_from_image(img)
+	_tex_cache[path] = t
+	return t
+
 var _sfx := {}
 const SFX_LIB := {
 	"pickup": "res://audio/pickup.wav",

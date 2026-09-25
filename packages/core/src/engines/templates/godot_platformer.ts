@@ -7,6 +7,7 @@ import type { GameSpec } from "../types";
 import { projectGodot, godotIgnore, rootScene, iconSvg, hudScript } from "./gd_common";
 import { WEB_EXPORT_PRESET } from "../godotExport";
 import { sfxPickup, sfxHit, sfxClick, menuScript, gameStateProPatch } from "./gd_pro";
+import { forgeDefaultSprites } from "../../assets/spriteForge";
 
 function gameState(spec: GameSpec): string {
   return `extends Node
@@ -83,7 +84,7 @@ var jump_buffer := 0.0
 var dash_timer := 0.0
 var dash_cd := 0.0
 var facing := 1.0
-var visual: ColorRect = null
+var visual: CanvasItem = null
 
 func _ready() -> void:
 	add_to_group("player")
@@ -93,12 +94,20 @@ func _ready() -> void:
 	shape.shape = rect
 	add_child(shape)
 
-	visual = ColorRect.new()
-	visual.name = "Visual"
-	visual.size = Vector2(22, 30)
-	visual.color = Color("${spec.palette.accent}")
-	visual.position = Vector2(-11, -15)
-	add_child(visual)
+	var pTex := GameState.tex("res://assets/sprites/player.png")
+	if pTex != null:
+		visual = Sprite2D.new()
+		visual.name = "Visual"
+		(visual as Sprite2D).texture = pTex
+		(visual as Sprite2D).scale = Vector2(2.0, 2.0)
+		add_child(visual)
+	else:
+		visual = ColorRect.new()
+		visual.name = "Visual"
+		visual.size = Vector2(22, 30)
+		visual.color = Color("${spec.palette.accent}")
+		visual.position = Vector2(-11, -15)
+		add_child(visual)
 
 	var cam := Camera2D.new()
 	cam.zoom = Vector2(1.4, 1.4)
@@ -160,7 +169,7 @@ var from_x := 0.0
 var to_x := 0.0
 var dir := 1.0
 var hit_cooldown := 0.0
-var visual: ColorRect = null
+var visual: CanvasItem = null
 
 func _ready() -> void:
 	add_to_group("hostile")
@@ -170,11 +179,18 @@ func _ready() -> void:
 	shape.shape = rect
 	add_child(shape)
 
-	visual = ColorRect.new()
-	visual.size = Vector2(26, 26)
-	visual.color = Color("#e5484d")
-	visual.position = Vector2(-13, -13)
-	add_child(visual)
+	var eTex := GameState.tex("res://assets/sprites/enemy.png")
+	if eTex != null:
+		var espr := Sprite2D.new()
+		espr.texture = eTex
+		espr.scale = Vector2(2.0, 2.0)
+		add_child(espr)
+	else:
+		visual = ColorRect.new()
+		visual.size = Vector2(26, 26)
+		visual.color = Color("#e5484d")
+		visual.position = Vector2(-13, -13)
+		add_child(visual)
 
 func _physics_process(delta: float) -> void:
 	hit_cooldown = max(hit_cooldown - delta, 0.0)
@@ -228,11 +244,18 @@ func _ready() -> void:
 	shape.shape = circ
 	add_child(shape)
 
-	var vis := ColorRect.new()
-	vis.size = Vector2(10, 10)
-	vis.color = Color("${spec.palette.accent}")
-	vis.position = Vector2(-5, -5)
-	add_child(vis)
+	var shTex := GameState.tex("res://assets/sprites/shard.png")
+	if shTex != null:
+		var sh := Sprite2D.new()
+		sh.texture = shTex
+		sh.scale = Vector2(1.4, 1.4)
+		add_child(sh)
+	else:
+		var vis := ColorRect.new()
+		vis.size = Vector2(10, 10)
+		vis.color = Color("${spec.palette.accent}")
+		vis.position = Vector2(-5, -5)
+		add_child(vis)
 
 	body_entered.connect(_on_body_entered)
 
@@ -295,11 +318,20 @@ var hud: CanvasLayer
 
 func _ready() -> void:
 	randomize()
-	var bg := ColorRect.new()
-	bg.color = SKY
-	bg.size = Vector2(3200, 900)
-	bg.z_index = -10
-	add_child(bg)
+	var skyTex := GameState.tex("res://assets/sprites/sky.png")
+	if skyTex != null:
+		var bg := TextureRect.new()
+		bg.texture = skyTex
+		bg.stretch_mode = TextureRect.STRETCH_SCALE
+		bg.size = Vector2(3200, 900)
+		bg.z_index = -10
+		add_child(bg)
+	else:
+		var bgc := ColorRect.new()
+		bgc.color = SKY
+		bgc.size = Vector2(3200, 900)
+		bgc.z_index = -10
+		add_child(bgc)
 
 	_build_platform(Vector2(-200, 140), Vector2(500, 40), "#2a3040")
 	_build_platform(Vector2(480, 80), Vector2(180, 30), "#2a3040")
@@ -339,11 +371,21 @@ func _build_platform(pos: Vector2, size: Vector2, color: String) -> void:
 	rect.size = size
 	shape.shape = rect
 	body.add_child(shape)
-	var vis := ColorRect.new()
-	vis.size = size
-	vis.color = Color(color)
-	vis.position = size / -2.0
-	body.add_child(vis)
+	var wTex := GameState.tex("res://assets/sprites/tile_wall.png")
+	if wTex != null:
+		var ws := Sprite2D.new()
+		ws.texture = wTex
+		ws.centered = false
+		ws.region_enabled = true
+		ws.region_rect = Rect2(0, 0, size.x, size.y)
+		ws.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+		body.add_child(ws)
+	else:
+		var vis := ColorRect.new()
+		vis.size = size
+		vis.color = Color(color)
+		vis.position = size / -2.0
+		body.add_child(vis)
 
 func _build_hazard(pos: Vector2, size: Vector2) -> void:
 	var hazard := preload("res://scenes/hazard.tscn").instantiate()
@@ -401,6 +443,7 @@ export function platformerFiles(spec: GameSpec): Record<string, string | Uint8Ar
     "audio/hit.wav": sfxHit(),
     "audio/click.wav": sfxClick(),
     "scripts/game_menu.gd": menuScript(spec),
+    ...Object.fromEntries(Object.entries(forgeDefaultSprites({ accent: spec.palette.accent, bg: spec.palette.bg }))),
     "icon.svg": iconSvg(spec.palette.bg, spec.palette.accent),
     "scenes/main.tscn": rootScene("Main", "Node", "res://scripts/main.gd"),
     "scenes/player.tscn": rootScene("Player", "CharacterBody2D", "res://scripts/player.gd"),

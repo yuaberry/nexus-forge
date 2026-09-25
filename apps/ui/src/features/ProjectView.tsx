@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Play, Dna, Code2, ScrollText, ExternalLink, ShieldCheck, RefreshCw, Terminal, MonitorPlay, Store, Package,
+  Play, Dna, Code2, ScrollText, ExternalLink, ShieldCheck, RefreshCw, Terminal, MonitorPlay, Store, Package, Wand2,
 } from "lucide-react";
 import { api, type ProjectDto, type TaskDto, type EventDto } from "../lib/api";
 import { useNexus } from "../store";
@@ -253,6 +253,7 @@ export default function ProjectView() {
         <button className="btn" onClick={() => void makeGameBuild("windows")} disabled={pubBusy}><Package size={14} /> .exe (Windows)</button>
         <button className="btn" onClick={() => void makeGameBuild("linux")} disabled={pubBusy}><Package size={14} /> Linux</button>
         <button className="btn" onClick={() => nav(`/project/${id}/dna`)}><Dna size={14} /> Game DNA</button>
+        <button className="btn" onClick={() => nav(`/project/${id}/assets`)}><Wand2 size={14} /> Assets</button>
         <button className="btn" onClick={() => nav(`/project/${id}/code`)}><Code2 size={14} /> Código</button>
         <button className="btn" onClick={() => nav(`/project/${id}/logs`)}><ScrollText size={14} /> Logs</button>
         <button className="btn" onClick={() => void load()}><RefreshCw size={14} /></button>

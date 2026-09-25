@@ -12,6 +12,7 @@ import ProjectView from "./features/ProjectView";
 import DnaView from "./features/DnaView";
 import CodeView from "./features/CodeView";
 import LogsView from "./features/LogsView";
+import AssetsView from "./features/AssetsView";
 import SettingsView from "./features/SettingsView";
 
 function Sidebar() {
@@ -142,6 +143,7 @@ export default function App() {
               <Route path="/project/:id/dna" element={<DnaView />} />
               <Route path="/project/:id/code" element={<CodeView />} />
               <Route path="/project/:id/logs" element={<LogsView />} />
+              <Route path="/project/:id/assets" element={<AssetsView />} />
               <Route path="/settings" element={<SettingsView />} />
             </Routes>
           </main>
