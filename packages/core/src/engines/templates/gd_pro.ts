@@ -271,14 +271,31 @@ var _tex_cache := {}
 func tex(path: String) -> Texture2D:
 	if _tex_cache.has(path):
 		return _tex_cache[path]
-	if not FileAccess.file_exists(path):
-		return null
-	var img := Image.new()
-	if img.load_png_from_buffer(FileAccess.get_file_as_bytes(path)) != OK:
-		return null
-	var t := ImageTexture.create_from_image(img)
-	_tex_cache[path] = t
-	return t
+	# 1) imported resource — works in editor AND in exports (the exporter packs
+	#    .ctex, not the raw .png, so raw loading alone fails in shipped builds)
+	if ResourceLoader.exists(path):
+		var imported: Texture2D = load(path)
+		if imported != null:
+			_tex_cache[path] = imported
+			return imported
+	# 2) raw PNG bytes — works pre-import (fresh clones, headless validation)
+	if FileAccess.file_exists(path):
+		var img := Image.new()
+		if img.load_png_from_buffer(FileAccess.get_file_as_bytes(path)) == OK:
+			var t := ImageTexture.create_from_image(img)
+			_tex_cache[path] = t
+			return t
+	return null
+
+## Loads an animation strip (base_0.png, base_1.png, …). Frame-count agnostic.
+func anim_frames(base: String, max_frames: int = 8) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	for i in range(max_frames):
+		var t: Texture2D = tex("%s_%d.png" % [base, i])
+		if t == null:
+			return out
+		out.append(t)
+	return out
 
 var _sfx := {}
 const SFX_LIB := {

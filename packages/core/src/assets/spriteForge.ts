@@ -116,7 +116,7 @@ function shade(c: RGB, f: number): RGB {
 export interface ForgePalette { accent: string; bg: string; fg?: string }
 
 /** Hero character sprite (16x16, mirrored, outlined, shaded). */
-export function paintHero(pal: ForgePalette, size = 16): Uint8Array {
+export function paintHero(pal: ForgePalette, size = 16, frame = 0): Uint8Array {
   const p = new Px(size, size);
   const skin: RGB = [232, 190, 160];
   const body = hexRGB(pal.accent);
@@ -124,19 +124,23 @@ export function paintHero(pal: ForgePalette, size = 16): Uint8Array {
   const mid = shade(body, 0.75);
   const outline: RGB = [16, 18, 26];
   const cx = Math.floor(size / 2);
+  // walk cycle: 4 phases — leg stride, body bob, arm swing
+  const LEGS: Array<[number, number]> = [[0, 0], [1, -1], [0, 0], [-1, 1]];
+  const [ldx, ldy] = LEGS[frame % 4]!;
+  const bob = frame % 2 === 1 ? -1 : 0;
 
-  p.rect(cx - 4, size - 5, 2, 5, dark);
-  p.rect(cx + 2, size - 5, 2, 5, dark);
-  p.rect(cx - 3, 8, 6, size - 12, body);
-  p.rect(cx - 3, 8, 6, 1, shade(body, 1.2));
+  p.rect(cx - 4 + ldx, size - 5, 2, 5 + ldy, dark);
+  p.rect(cx + 2 - ldx, size - 5, 2, 5 - ldy, dark);
+  p.rect(cx - 3, 8 + bob, 6, size - 12, body);
+  p.rect(cx - 3, 8 + bob, 6, 1, shade(body, 1.2));
   p.rect(cx - 3, size - 5, 6, 1, mid);
-  p.rect(cx - 5, 9, 2, 4, mid);
-  p.rect(cx + 3, 9, 2, 4, mid);
-  p.circle(cx, 5, 3, skin);
-  p.rect(cx - 3, 2, 7, 1, shade(body, 1.25));
-  p.rect(cx - 3, 3, 7, 1, body);
-  p.set(cx - 1, 5, [20, 24, 36]);
-  p.line(cx + 4, 6, cx + 6, 3, [180, 235, 255]);
+  p.rect(cx - 5, 9 + bob - (ldx > 0 ? 1 : 0), 2, 4, mid);
+  p.rect(cx + 3, 9 + bob + (ldx > 0 ? 1 : 0), 2, 4, mid);
+  p.circle(cx, 5 + bob, 3, skin);
+  p.rect(cx - 3, 2 + bob, 7, 1, shade(body, 1.25));
+  p.rect(cx - 3, 3 + bob, 7, 1, body);
+  p.set(cx - 1, 5 + bob, [20, 24, 36]);
+  p.line(cx + 4, 6 + bob, cx + 6, 3 + bob, [180, 235, 255]);
   mirrorX(p);
   const snapshot = new Uint8Array(p.data);
   const has = (x: number, y: number) => {
@@ -150,20 +154,22 @@ export function paintHero(pal: ForgePalette, size = 16): Uint8Array {
 }
 
 /** Creature sprite (imp: round body, horns, eyes). */
-export function paintCreature(pal: ForgePalette, size = 16): Uint8Array {
+export function paintCreature(pal: ForgePalette, size = 16, frame = 0): Uint8Array {
   const p = new Px(size, size);
   const body: RGB = [180, 60, 72];
   const dark = shade(body, 0.55);
   const outline: RGB = [18, 12, 16];
   const cx = Math.floor(size / 2);
-  p.circle(cx, 9, 5, body);
-  p.circle(cx, 11, 3, dark);
-  p.line(cx - 4, 4, cx - 5, 1, [230, 220, 200]);
-  p.line(cx + 4, 4, cx + 5, 1, [230, 220, 200]);
-  p.set(cx - 2, 8, [255, 240, 90]);
-  p.set(cx + 2, 8, [255, 240, 90]);
-  p.rect(cx - 4, 13, 2, 2, dark);
-  p.rect(cx + 2, 13, 2, 2, dark);
+  // squash cycle: body rises/falls, eyes drift — feels alive
+  const rise = [0, -1, 1][frame % 3] ?? 0;
+  p.circle(cx, 9 + rise, 5, body);
+  p.circle(cx, 11 + rise, 3, dark);
+  p.line(cx - 4, 4 + rise, cx - 5, 1 + rise, [230, 220, 200]);
+  p.line(cx + 4, 4 + rise, cx + 5, 1 + rise, [230, 220, 200]);
+  p.set(cx - 2, 8 + rise, [255, 240, 90]);
+  p.set(cx + 2, 8 + rise, [255, 240, 90]);
+  p.rect(cx - 4, 13, 2, 2 - (rise > 0 ? 1 : 0), dark);
+  p.rect(cx + 2, 13, 2, 2 - (rise > 0 ? 1 : 0), dark);
   mirrorX(p);
   const snapshot = new Uint8Array(p.data);
   const has = (x: number, y: number) => x >= 0 && y >= 0 && x < size && y < size && (snapshot[(y * size + x) * 4 + 3] ?? 0) > 0;
@@ -174,20 +180,25 @@ export function paintCreature(pal: ForgePalette, size = 16): Uint8Array {
 }
 
 /** Collectible shard (diamond gem with facets). */
-export function paintShard(pal: ForgePalette, size = 12): Uint8Array {
+export function paintShard(pal: ForgePalette, size = 12, frame = 0): Uint8Array {
   const p = new Px(size, size);
   const gem = hexRGB(pal.accent);
   const lite = shade(gem, 1.35);
   const dark = shade(gem, 0.5);
   const outline: RGB = [10, 14, 24];
   const cx = size / 2;
+  const pulse = [1.0, 1.18, 1.0, 0.86][frame % 4] ?? 1.0;
   for (let y = 0; y < size - 2; y++) {
-    const w = y < size / 2 ? (y * 2 + 1) : ((size - 2 - y) * 2 + 1);
+    let w = y < size / 2 ? (y * 2 + 1) : ((size - 2 - y) * 2 + 1);
+    w = Math.max(1, Math.round(w * pulse));
     const x0 = Math.floor(cx - w / 2);
     p.rect(x0, y + 1, w, 1, y < size / 2 ? lite : gem);
     p.set(x0, y + 1, dark); p.set(x0 + w - 1, y + 1, dark);
   }
-  p.set(Math.floor(cx) - 1, 3, [255, 255, 255], 235);
+  // sparkle orbits the gem across frames
+  const sp: Array<[number, number]> = [[Math.floor(cx) - 1, 3], [Math.floor(cx) + 2, 4], [Math.floor(cx), 8], [Math.floor(cx) - 3, 6]];
+  const [sx, sy] = sp[frame % 4]!;
+  p.set(sx, sy, [255, 255, 255], 235);
   const snapshot = new Uint8Array(p.data);
   const has = (x: number, y: number) => x >= 0 && y >= 0 && x < size && y < size && (snapshot[(y * size + x) * 4 + 3] ?? 0) > 0;
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
@@ -252,13 +263,14 @@ export function paintSky(pal: ForgePalette, w = 256, h = 144): Uint8Array {
 }
 
 /** Radial glow sprite (VFX/particles). */
-export function paintGlow(pal: ForgePalette, size = 32): Uint8Array {
+export function paintGlow(pal: ForgePalette, size = 32, frame = 0): Uint8Array {
   const p = new Px(size, size);
   const c = hexRGB(pal.accent);
   const cx = size / 2;
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
     const d = Math.hypot(x - cx + 0.5, y - cx + 0.5) / (size / 2);
-    if (d < 1) p.set(x, y, c, Math.round(255 * Math.pow(1 - d, 2.2)));
+    const beat = 1 + 0.12 * Math.sin((frame / 3) * Math.PI * 2);
+    if (d < 1) p.set(x, y, c, Math.round(255 * Math.pow(Math.max(0, 1 - d * beat), 2.2)));
   }
   return p.png();
 }
@@ -266,16 +278,35 @@ export function paintGlow(pal: ForgePalette, size = 32): Uint8Array {
 export const SPRITE_SLOTS = ["player", "enemy", "shard", "tile_ground", "tile_wall", "sky", "glow"] as const;
 export type SpriteSlot = (typeof SPRITE_SLOTS)[number];
 
+export const ANIM_SPECS: Array<{ base: string; frames: number }> = [
+  { base: "player", frames: 4 },   // walk cycle
+  { base: "enemy", frames: 3 },    // squash/hover
+  { base: "shard", frames: 4 },    // pulse + sparkle
+  { base: "glow", frames: 3 },     // beat pulse
+];
+
 export function forgeDefaultSprites(pal: ForgePalette): Record<string, Uint8Array> {
-  return {
-    "assets/sprites/player.png": paintHero(pal),
-    "assets/sprites/enemy.png": paintCreature(pal),
-    "assets/sprites/shard.png": paintShard(pal),
+  const out: Record<string, Uint8Array> = {
     "assets/sprites/tile_ground.png": paintGroundTile(pal),
     "assets/sprites/tile_wall.png": paintWallTile(pal),
     "assets/sprites/sky.png": paintSky(pal),
-    "assets/sprites/glow.png": paintGlow(pal),
   };
+  for (const { base, frames } of ANIM_SPECS) {
+    for (let f = 0; f < frames; f++) {
+      const bytes =
+        base === "player" ? paintHero(pal, 16, f)
+        : base === "enemy" ? paintCreature(pal, 16, f)
+        : base === "shard" ? paintShard(pal, 12, f)
+        : paintGlow(pal, 32, f);
+      out[`assets/sprites/${base}_${f}.png`] = bytes;
+    }
+  }
+  // legacy single-frame files (older scripts reference these)
+  out["assets/sprites/player.png"] = paintHero(pal);
+  out["assets/sprites/enemy.png"] = paintCreature(pal);
+  out["assets/sprites/shard.png"] = paintShard(pal);
+  out["assets/sprites/glow.png"] = paintGlow(pal);
+  return out;
 }
 
 /** Prompt per slot for Tier-2 AI generation. */

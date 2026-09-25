@@ -11,7 +11,7 @@ import type { DnaSection, Dimension, EngineId, ForgeStage, GameBrief, Origin, Qu
 import { bus } from "../events";
 import { Workspace } from "../workspace";
 import { GitRepo } from "../git";
-import { writeDnaField, recordDecision } from "../dna";
+import { writeDnaField, recordDecision, readDna } from "../dna";
 import { getAdapter, ensureGodot } from "../engines/manager";
 import { planGame, generateGdd, type GamePlan } from "../orchestrator/director";
 import { getProject, updateProject, insertTasks, listTasks, updateTask, nextRunnableTask, computeProgress, createProject, type ProjectRow } from "../orchestrator/store";
@@ -78,7 +78,53 @@ function stageDna(p: ProjectRow, plan: GamePlan, brief: GameBrief): void {
   put("artDirection", "prototype", "Code-built placeholder primitives in a coherent dark palette.", "confirmed", "Honest placeholder until the asset pipeline phase.");
   put("decisions", `d-${uid("").slice(0, 6)}`, { title: "Prototype slice scope", rationale: plan.coreLoop.slice(0, 180) }, "inferred");
   recordDecision(p.id, "Prototype slice scope", `Milestone 1 vertical slice based on: ${plan.coreLoop.slice(0, 160)}`);
+  _writeDnaDocument(p.id, plan);
   stage(p.id, "dna", "Game DNA written (each field carries confirmed/inferred origin).", "success");
+}
+
+/** Writes the full DNA as a professional standalone document (docs/game-dna.md). */
+function _writeDnaDocument(projectId: string, plan: GamePlan): void {
+  void plan;
+  try {
+    const dna = readDna(projectId);
+    const ORIGIN_LABEL: Record<string, string> = {
+      confirmed: "Confirmado",
+      inferred: "Inferido pela IA",
+      unknown: "Desconhecido",
+      requires_decision: "Requer decisao",
+    };
+    const lines: string[] = [];
+    lines.push("# GAME DNA — Documento de Identidade do Jogo");
+    lines.push("");
+    lines.push("> Memoria estrutural permanente do projeto. Cada campo carrega a ORIGEM da decisao: se veio do usuario (Confirmado), foi inferida pela IA, ou ainda precisa de decisao do diretor criativo. Os agentes NAO podem contradizer campos Confirmados sem revisao.");
+    lines.push("");
+    lines.push("| Secao | Campo | Valor | Origem |");
+    lines.push("|---|---|---|---|");
+    for (const section of Object.keys(dna).sort()) {
+      const fields = dna[section as keyof typeof dna] ?? {};
+      for (const [key, field] of Object.entries(fields)) {
+        const value = typeof field.value === "string" ? field.value : JSON.stringify(field.value);
+        const safe = String(value).replace(/\|/g, "\\|").replace(/\n/g, " ").slice(0, 240);
+        lines.push(`| ${section} | ${key} | ${safe} | ${ORIGIN_LABEL[field.origin] ?? field.origin} |`);
+      }
+    }
+    lines.push("");
+    lines.push("## Decisoes registradas");
+    lines.push("");
+    lines.push("Toda decisao estrutural do projeto e versionada na tabela `decisions` do banco e nos commits do Git.");
+    lines.push("");
+    lines.push("---");
+    lines.push("*Documento gerado automaticamente pelo Nexus Forge em " + new Date().toISOString().slice(0, 10) + ".*");
+    const { mkdirSync, writeFileSync } = require("node:fs") as typeof import("node:fs");
+    const { join } = require("node:path") as typeof import("node:path");
+    const proj = getProject(projectId);
+    if (proj) {
+      mkdirSync(join(proj.data_path, "docs"), { recursive: true });
+      writeFileSync(join(proj.data_path, "docs", "game-dna.md"), lines.join("\n"));
+    }
+  } catch {
+    // document is a bonus — never blocks the pipeline
+  }
 }
 
 async function stageGdd(p: ProjectRow, ws: Workspace, git: GitRepo, plan: GamePlan): Promise<void> {

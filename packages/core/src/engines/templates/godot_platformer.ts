@@ -86,6 +86,31 @@ var dash_cd := 0.0
 var facing := 1.0
 var visual: CanvasItem = null
 
+func _build_visual(base: String, fallback_color: Color, fallback_size: Vector2) -> CanvasItem:
+	var frames: Array[Texture2D] = GameState.anim_frames("res://assets/sprites/" + base)
+	if frames.size() > 1:
+		var sf := SpriteFrames.new()
+		sf.add_animation("idle")
+		sf.set_animation_speed("idle", 6.0)
+		sf.set_animation_loop("idle", true)
+		for f in frames:
+			sf.add_frame("idle", f)
+		var aspr := AnimatedSprite2D.new()
+		aspr.sprite_frames = sf
+		aspr.play("idle")
+		aspr.scale = Vector2(2.0, 2.0)
+		return aspr
+	elif frames.size() == 1:
+		var single := Sprite2D.new()
+		single.texture = frames[0]
+		single.scale = Vector2(2.0, 2.0)
+		return single
+	var cr := ColorRect.new()
+	cr.size = fallback_size
+	cr.color = fallback_color
+	cr.position = fallback_size / -2.0
+	return cr
+
 func _ready() -> void:
 	add_to_group("player")
 	var shape := CollisionShape2D.new()
@@ -94,20 +119,8 @@ func _ready() -> void:
 	shape.shape = rect
 	add_child(shape)
 
-	var pTex := GameState.tex("res://assets/sprites/player.png")
-	if pTex != null:
-		visual = Sprite2D.new()
-		visual.name = "Visual"
-		(visual as Sprite2D).texture = pTex
-		(visual as Sprite2D).scale = Vector2(2.0, 2.0)
-		add_child(visual)
-	else:
-		visual = ColorRect.new()
-		visual.name = "Visual"
-		visual.size = Vector2(22, 30)
-		visual.color = Color("${spec.palette.accent}")
-		visual.position = Vector2(-11, -15)
-		add_child(visual)
+	visual = _build_visual("player", Color("${spec.palette.accent}"), Vector2(22, 30))
+	add_child(visual)
 
 	var cam := Camera2D.new()
 	cam.zoom = Vector2(1.4, 1.4)
@@ -171,6 +184,31 @@ var dir := 1.0
 var hit_cooldown := 0.0
 var visual: CanvasItem = null
 
+func _build_visual(base: String, fallback_color: Color, fallback_size: Vector2) -> CanvasItem:
+	var frames: Array[Texture2D] = GameState.anim_frames("res://assets/sprites/" + base)
+	if frames.size() > 1:
+		var sf := SpriteFrames.new()
+		sf.add_animation("idle")
+		sf.set_animation_speed("idle", 6.0)
+		sf.set_animation_loop("idle", true)
+		for f in frames:
+			sf.add_frame("idle", f)
+		var aspr := AnimatedSprite2D.new()
+		aspr.sprite_frames = sf
+		aspr.play("idle")
+		aspr.scale = Vector2(2.0, 2.0)
+		return aspr
+	elif frames.size() == 1:
+		var single := Sprite2D.new()
+		single.texture = frames[0]
+		single.scale = Vector2(2.0, 2.0)
+		return single
+	var cr := ColorRect.new()
+	cr.size = fallback_size
+	cr.color = fallback_color
+	cr.position = fallback_size / -2.0
+	return cr
+
 func _ready() -> void:
 	add_to_group("hostile")
 	var shape := CollisionShape2D.new()
@@ -179,18 +217,7 @@ func _ready() -> void:
 	shape.shape = rect
 	add_child(shape)
 
-	var eTex := GameState.tex("res://assets/sprites/enemy.png")
-	if eTex != null:
-		var espr := Sprite2D.new()
-		espr.texture = eTex
-		espr.scale = Vector2(2.0, 2.0)
-		add_child(espr)
-	else:
-		visual = ColorRect.new()
-		visual.size = Vector2(26, 26)
-		visual.color = Color("#e5484d")
-		visual.position = Vector2(-13, -13)
-		add_child(visual)
+	add_child(_build_visual("enemy", Color("#e5484d"), Vector2(26, 26)))
 
 func _physics_process(delta: float) -> void:
 	hit_cooldown = max(hit_cooldown - delta, 0.0)
@@ -236,6 +263,31 @@ function coinScript(spec: GameSpec): string {
 
 var spin := 0.0
 
+func _build_visual(base: String, fallback_color: Color, fallback_size: Vector2) -> CanvasItem:
+	var frames: Array[Texture2D] = GameState.anim_frames("res://assets/sprites/" + base)
+	if frames.size() > 1:
+		var sf := SpriteFrames.new()
+		sf.add_animation("idle")
+		sf.set_animation_speed("idle", 6.0)
+		sf.set_animation_loop("idle", true)
+		for f in frames:
+			sf.add_frame("idle", f)
+		var aspr := AnimatedSprite2D.new()
+		aspr.sprite_frames = sf
+		aspr.play("idle")
+		aspr.scale = Vector2(2.0, 2.0)
+		return aspr
+	elif frames.size() == 1:
+		var single := Sprite2D.new()
+		single.texture = frames[0]
+		single.scale = Vector2(2.0, 2.0)
+		return single
+	var cr := ColorRect.new()
+	cr.size = fallback_size
+	cr.color = fallback_color
+	cr.position = fallback_size / -2.0
+	return cr
+
 func _ready() -> void:
 	add_to_group("coin")
 	var shape := CollisionShape2D.new()
@@ -244,18 +296,7 @@ func _ready() -> void:
 	shape.shape = circ
 	add_child(shape)
 
-	var shTex := GameState.tex("res://assets/sprites/shard.png")
-	if shTex != null:
-		var sh := Sprite2D.new()
-		sh.texture = shTex
-		sh.scale = Vector2(1.4, 1.4)
-		add_child(sh)
-	else:
-		var vis := ColorRect.new()
-		vis.size = Vector2(10, 10)
-		vis.color = Color("${spec.palette.accent}")
-		vis.position = Vector2(-5, -5)
-		add_child(vis)
+	add_child(_build_visual("shard", Color("${spec.palette.accent}"), Vector2(12, 12)))
 
 	body_entered.connect(_on_body_entered)
 

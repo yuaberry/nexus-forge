@@ -11,6 +11,8 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { existsSync, mkdirSync, readdirSync, copyFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { homedir } from "node:os";
+import { writePublishingSet } from "./publishingSet";
 import { z } from "zod";
 import { bus } from "../events";
 import { chatJson, getProviderForRole } from "../providers/registry";
@@ -26,6 +28,7 @@ export const STEAM_SIZES: Array<{ id: string; label: string; w: number; h: numbe
   { id: "capsule_462x174", label: "Capsule", w: 462, h: 174 },
   { id: "capsule_616x353", label: "Main capsule", w: 616, h: 353 },
   { id: "hero_1920x620", label: "Library hero", w: 1920, h: 620 },
+  { id: "social_1200x630", label: "Social/OG card", w: 1200, h: 630 },
 ];
 
 // --- store copy (LLM with deterministic fallback) -----------------------------
@@ -229,7 +232,16 @@ export async function generateStoreKit(p: ProjectRow, wsPath: string, godotBin: 
   if (screenshots.length === 0) notes.push("Screenshots unavailable here — capture via the Live Preview or the Godot editor if rendering is not supported headless on this machine.");
   else notes.push(`${screenshots.length} real screenshots captured from the running game.`);
 
-  bus.emit({ projectId: p.id, agent: "store-kit", stage: "publish", level: "success", message: `Steam kit ready: store copy ${usedLLM ? "(LLM)" : "(deterministic)"}, ${assets.filter((a) => a.rendered).length}/${assets.length} capsules, ${screenshots.length} screenshots.` });
+  await writePublishingSet(p, copy, kitDir, {
+    capsules: assets.filter((a) => a.rendered).length,
+    totalCapsules: assets.length,
+    screenshots: screenshots.length,
+    webPreview: existsSync(join(homedir(), ".nexusforge", "previews", p.slug, "index.html")),
+    winBuild: existsSync(join(homedir(), ".nexusforge", "builds", p.slug, `${p.slug}-win64.zip`)),
+    linuxBuild: existsSync(join(homedir(), ".nexusforge", "builds", p.slug, `${p.slug}-linux64.zip`)),
+  });
+
+  bus.emit({ projectId: p.id, agent: "store-kit", stage: "publish", level: "success", message: `Steam kit pronto: copy ${usedLLM ? "(LLM)" : "(deterministico)"}, ${assets.filter((a) => a.rendered).length}/${assets.length} capsules, ${screenshots.length} screenshots, guia de publicacao + legal + checklist.` });
   return { ok: true, assets, screenshots, notes };
 }
 
