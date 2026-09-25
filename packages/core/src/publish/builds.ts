@@ -157,6 +157,7 @@ export async function buildExecutable(p: ProjectRow, wsPath: string, godotBin: s
 
   bus.emit({ projectId: p.id, agent: "build-manager", stage: "build", level: "info", message: `Exporting ${presetName} executable (real Godot exporter)…` });
   try {
+    await exec(godotBin, ["--headless", "--path", ".", "--import"], { cwd: wsPath, timeout: 240_000, maxBuffer: 20_000_000 });
     const r = await exec(godotBin, ["--headless", "--path", ".", "--export-release", presetName, outPath], {
       cwd: wsPath, timeout: 300_000, maxBuffer: 20_000_000,
     });

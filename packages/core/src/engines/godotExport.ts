@@ -169,6 +169,8 @@ export async function exportWeb(wsPath: string, godotBin: string, outDir: string
   mkdirSync(outDir, { recursive: true });
   const outHtml = join(outDir, "index.html");
   try {
+    // Import first: exports require the resource cache (.godot) to exist.
+    await exec(godotBin, ["--headless", "--path", ".", "--import"], { cwd: wsPath, timeout: 240_000, maxBuffer: 20_000_000 });
     const r = await exec(godotBin, ["--headless", "--path", ".", "--export-release", "Web", outHtml], {
       cwd: wsPath, timeout: 300_000, maxBuffer: 20_000_000,
     });
